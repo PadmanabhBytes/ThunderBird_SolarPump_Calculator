@@ -319,8 +319,8 @@ async def _run_calculation(
                 max_drop_frac = 0.10
             else:
                 wire_watts = (
-                    prec.pump.rated_power_w
-                    if prec is not None and prec.pump is not None
+                    prec.operating_wattage_w
+                    if prec is not None and prec.operating_wattage_w is not None
                     else fallback_power_w
                 )
                 max_drop_frac = 0.05
@@ -332,13 +332,14 @@ async def _run_calculation(
                 max_drop_fraction=max_drop_frac,
             )
 
-            # Enforce minimum 12 AWG (NEC submersible pump drop cable standard);
-            # lighter wire is bumped up to the floor.
+            # TBS minimum wire standards:
+            #   Solar-only: 10 AWG (heavier due to DC continuous-duty rating)
+            #   Generator backup: 12 AWG (MPPT controller handles current variation)
             _AWG_RANK = [
                 "14 AWG", "12 AWG", "10 AWG", "8 AWG", "6 AWG", "4 AWG",
                 "3 AWG", "2 AWG", "1 AWG", "1/0 AWG", "2/0 AWG", "3/0 AWG", "4/0 AWG",
             ]
-            _MIN_AWG = "12 AWG"
+            _MIN_AWG = "12 AWG" if request.generator_backup_required else "10 AWG"
             try:
                 if _AWG_RANK.index(ws.recommended_awg) < _AWG_RANK.index(_MIN_AWG):
                     final_awg = _MIN_AWG
