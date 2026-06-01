@@ -110,7 +110,12 @@ export default function ResultsPage({ result, formData, onReset, onEdit }) {
     ? `Recommended: ${wireRes.recommended_awg} (${wireRes.voltage_drop_percent?.toFixed(1)}% loss)`
     : null
 
-  function handlePrint() { window.print() }
+  function handlePrint() {
+    const prev = document.title
+    document.title = 'TBS-Solar-Quote'
+    window.print()
+    document.title = prev
+  }
 
   return (
     <div className="results-page">
