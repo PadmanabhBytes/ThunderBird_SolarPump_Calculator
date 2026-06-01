@@ -222,7 +222,15 @@ class FrictionService:
             c_coeff = _HW_C.get(material_key, 120.0)
             loss_per_100ft = _hazen_williams_loss_per_100ft(gpm, c_coeff, id_in)
         else:
-            loss_per_100ft = interpolate_friction_loss(gpm, data_points, extrapolate=extrapolate)
+            # Snap up to the next available table breakpoint (ceiling lookup).
+            # TBS sizes pipe friction at the next standard GPM entry ≥ required
+            # flow — a conservative table-lookup convention, not interpolation.
+            gpm_for_lookup = gpm
+            if not extrapolate:
+                table_gpms = [pt[0] for pt in data_points]
+                ceiling = next((g for g in table_gpms if g >= gpm), table_gpms[-1])
+                gpm_for_lookup = ceiling
+            loss_per_100ft = interpolate_friction_loss(gpm_for_lookup, data_points, extrapolate=extrapolate)
 
         total_equiv_length = pipe_length_ft + fittings_equivalent_length_ft
         pipe_friction      = (pipe_length_ft                 / 100.0) * loss_per_100ft

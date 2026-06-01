@@ -245,7 +245,7 @@ export default function ResultsPage({ result, formData, onReset, onEdit }) {
           <StatRow label="Elevation Gain"      value={formData.elevationGain ? `${formData.elevationGain} ft` : '0 ft'} />
           <StatRow label="Friction Loss"
             value={frictionFt != null
-              ? `${frictionFt.toFixed(2)} ft (${formData.pipeDiameter}" ${formData.pipeMaterial} × ${formData.pipeLength} ft @ ${15} GPM)`
+              ? `${frictionFt.toFixed(2)} ft (${formData.pipeDiameter}" ${formData.pipeMaterial} × ${formData.pipeLength} ft @ ${result.head_breakdown?.friction_flow_gpm ?? formData.requiredFlowGpm} GPM)`
               : '—'} />
           <StatRow label="Pressure Head"      value={pressureHd != null ? `${pressureHd.toFixed(2)} ft` : '0 ft'} />
           <StatRow label="Total TDH"          value={tdhStr ? `${tdhStr} ft` : '—'} highlight />

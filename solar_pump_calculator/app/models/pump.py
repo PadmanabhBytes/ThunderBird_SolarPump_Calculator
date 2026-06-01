@@ -102,8 +102,9 @@ class Pump(BaseModel):
     pump_type: PumpType = Field(..., description="Pump classification")
 
     # ── Envelope (catalog bounds — used for quick pre-filter only) ────────────
-    min_flow_gpm: float = Field(..., ge=0, description="Minimum operating flow (GPM)")
-    max_flow_gpm: float = Field(..., gt=0, description="Maximum operating flow (GPM)")
+    min_flow_gpm:   float = Field(..., ge=0, description="Minimum operating flow (GPM)")
+    max_flow_gpm:   float = Field(..., gt=0, description="Maximum operating flow (GPM)")
+    rated_flow_gpm: Optional[float] = Field(None, ge=0, description="Nameplate rated flow (GPM) — used for pipe friction sizing")
     min_head_ft:  float = Field(..., ge=0, description="Minimum operating head (ft)")
     max_head_ft:  float = Field(..., gt=0, description="Maximum operating head (ft)")
 

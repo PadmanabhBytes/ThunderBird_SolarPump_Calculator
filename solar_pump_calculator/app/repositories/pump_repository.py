@@ -366,6 +366,7 @@ class PumpRepository:
             mppt_compatible=_bool_col(row.get("mppt_compatible"), default=False),
             price_usd=_opt_float(row.get("price_usd")),
             description=_opt_str(row.get("description")),
+            rated_flow_gpm=_opt_float(row.get("rated_flow_gpm")),
         )
 
     # ── Private: performance datasets ─────────────────────────────────────────

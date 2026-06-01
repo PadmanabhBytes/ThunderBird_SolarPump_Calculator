@@ -165,6 +165,7 @@ class TDHService:
         head_breakdown = HeadBreakdown(
             static_head_ft=_r(static_head_ft),
             friction_loss_ft=round(friction_loss_ft, 4),
+            friction_flow_gpm=friction_gpm,
             minor_losses_ft=minor_losses_ft,
             pressure_head_ft=pressure_head_ft,
             subtotal_ft=subtotal_ft,

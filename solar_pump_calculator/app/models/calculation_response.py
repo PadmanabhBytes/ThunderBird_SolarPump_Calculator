@@ -23,6 +23,7 @@ class HeadBreakdown(BaseModel):
     """
     static_head_ft: float = Field(..., description="Pumping level + elevation gain (ft)")
     friction_loss_ft: float = Field(..., description="Pipe + fittings friction (ft)")
+    friction_flow_gpm: Optional[float] = Field(None, description="Flow rate used for friction sizing (GPM)")
     minor_losses_ft: float = Field(..., description="Parametric minor losses (ft)")
     pressure_head_ft: float = Field(default=0.0, description="Discharge pressure converted to head (ft)")
     subtotal_ft: float = Field(..., description="Sum of all components before safety factor (ft)")
