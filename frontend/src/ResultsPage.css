@@ -1,0 +1,508 @@
+.results-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── Warnings ── */
+.warnings-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.warning-chip {
+  background: #FFFBEB;
+  border: 1px solid #FCD34D;
+  border-left: 4px solid #F59E0B;
+  border-radius: 6px;
+  padding: 0.5rem 0.875rem;
+  font-size: 0.8125rem;
+  color: #78350F;
+}
+
+/* ── Tier tabs ── */
+.tier-tabs {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tier-tab {
+  padding: 0.5rem 1.25rem;
+  border-radius: 8px;
+  border: 2px solid var(--border);
+  background: transparent;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: all 0.15s;
+}
+
+.tier-tab.active.color-green  { background: var(--green-light); border-color: var(--green); color: var(--green-dark); }
+.tier-tab.active.color-gold   { background: var(--gold-light);  border-color: var(--gold);  color: #7A5700; }
+.tier-tab.active.color-purple { background: var(--purple-light);border-color: var(--purple);color: var(--purple); }
+.tier-tab:not(.active):hover  { border-color: var(--text-muted); color: var(--text); }
+
+/* ── 1. Gold hero banner ── */
+.pump-hero {
+  background: linear-gradient(135deg, #D4A020 0%, #C9960C 100%);
+  border-radius: var(--radius);
+  padding: 1.5rem 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.pump-hero-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.pump-hero-name {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.pump-hero-sub {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: rgba(255,255,255,0.82);
+  letter-spacing: 0.01em;
+}
+
+.perfect-match-badge {
+  background: var(--green);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 700;
+  padding: 0.5rem 1.25rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── System Features ── */
+.system-features {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.system-features-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 0.5rem;
+}
+
+.system-features-list {
+  margin: 0;
+  padding: 0 0 0 1.25rem;
+  list-style: disc;
+}
+
+.system-features-list li {
+  font-size: 0.9rem;
+  color: var(--text);
+  line-height: 1.55;
+  padding: 0.1rem 0;
+}
+
+/* ── 3-column grid ── */
+.results-grid {
+  display: grid;
+  grid-template-columns: 0.85fr 1.2fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 900px) {
+  .results-grid { grid-template-columns: 1fr; }
+}
+
+.result-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+/* ── 3. Recommended card: green border ── */
+.rec-card {
+  border-color: var(--green);
+  box-shadow: 0 4px 16px rgba(34,197,94,0.12);
+}
+
+/* ── 4. Why card: gold left accent ── */
+.why-card {
+  border-color: var(--gold);
+  box-shadow: 0 4px 16px rgba(201,150,12,0.10);
+}
+
+/* Dot-prefixed section titles */
+.card-dot-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.card-dot-title::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.card-dot-title.gray   { color: var(--text-muted); }
+.card-dot-title.gray::before   { background: var(--gray); }
+.card-dot-title.green  { color: var(--green-dark); }
+.card-dot-title.green::before  { background: var(--green); }
+.card-dot-title.gold   { color: #7A5700; }
+.card-dot-title.gold::before   { background: var(--gold); }
+
+.card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* ── 3. RECOMMENDED badge ── */
+.rec-badge {
+  background: var(--green);
+  color: #fff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.pump-name {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+/* Stats */
+.stat-list {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.375rem 1rem;
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+/* ── 3. Recommended stats: larger highlight values ── */
+.rec-stats .stat-value.highlight {
+  font-size: 1rem;
+  color: var(--green-dark);
+}
+
+.stat-list.inline {
+  max-width: 380px;
+}
+
+.stat-label {
+  color: var(--text-muted);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.stat-value {
+  color: var(--text);
+  font-weight: 600;
+  text-align: right;
+}
+
+.stat-value.highlight {
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.margin-pill {
+  display: inline-flex;
+  align-self: flex-start;
+  background: var(--green-light);
+  color: var(--green-dark);
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.no-match {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  padding: 1rem 0;
+}
+
+/* ── 4. Why list: bold-label bullets ── */
+.why-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.why-item {
+  font-size: 0.775rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.why-item strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.why-item.warn        { color: #92400E; }
+.why-item.warn strong { color: #92400E; }
+.why-item.muted       { color: var(--text-muted); font-style: italic; }
+
+/* ── 6. Collapsible with subtitle + +/− ── */
+.collapsible {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.collapsible-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+}
+
+.collapsible-header:hover { background: var(--gray-light); }
+
+.collapsible-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.collapsible-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.collapsible-subtitle {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.collapsible-toggle {
+  font-size: 1.25rem;
+  font-weight: 300;
+  color: var(--purple);
+  flex-shrink: 0;
+  line-height: 1;
+  user-select: none;
+}
+
+.collapsible-body {
+  padding: 1.25rem 1.5rem 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+/* ── 5. Equipment cards: list layout, (qty) SKU title, gold primary ── */
+.accessories-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.acc-section-header {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #1E3A5F;
+  padding: 0.375rem 0 0.25rem;
+  border-bottom: 2px solid #CBD5E1;
+  margin-top: 0.5rem;
+}
+.acc-section-header.customer {
+  color: #92400E;
+  border-bottom-color: #FCD34D;
+  margin-top: 1.25rem;
+}
+
+.accessory-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  background: var(--white);
+}
+
+.accessory-card.acc-primary {
+  background: #FFFBEB;
+  border-color: #E8C84A;
+}
+
+.acc-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.acc-desc {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.acc-in-stock {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--green-dark);
+  margin-top: 0.125rem;
+}
+
+.true-production-banner {
+  background: #F0FDF4;
+  border: 1.5px solid #22C55E;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+}
+.tp-label {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #14532D;
+  margin-bottom: 0.5rem;
+}
+.tp-note {
+  font-weight: 400;
+  font-size: 0.8125rem;
+  color: #166534;
+  margin-left: 0.375rem;
+}
+.tp-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  gap: 2rem;
+}
+.tp-list li {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #15803D;
+}
+.tp-list li::before {
+  content: "○  ";
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: #166534;
+  vertical-align: middle;
+}
+
+.wire-warning {
+  margin-top: 1rem;
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 6px;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.8125rem;
+  color: #B91C1C;
+}
+
+.muted-note {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+/* ── Action buttons ── */
+.results-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.btn-outline:hover { border-color: var(--text-muted); color: var(--text); }
+
+.btn-secondary {
+  background: transparent;
+  border: 1.5px solid var(--gold);
+  border-radius: 8px;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--gold);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-secondary:hover { background: var(--gold-light); }
+
+.btn-print {
+  background: var(--text);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.btn-print:hover { opacity: 0.85; }
+
+/* ── Print ── */
+@media print {
+  .tier-tabs, .results-actions, .pump-hero { display: none; }
+  .collapsible-body { display: block !important; }
+}

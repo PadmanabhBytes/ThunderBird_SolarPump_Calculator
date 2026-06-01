@@ -1,0 +1,22 @@
+# ── Web framework ────────────────────────────────────────────────────────────
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+
+# ── Validation & settings ────────────────────────────────────────────────────
+pydantic>=2.9.0
+pydantic-settings>=2.6.0
+python-dotenv>=1.0.0
+
+# ── Data processing ──────────────────────────────────────────────────────────
+pandas>=2.2.0
+numpy>=1.26.0
+
+# ── Numerical / interpolation (future pump curve fitting) ────────────────────
+scipy>=1.14.0
+
+# ── HTTP client (integration tests, external data fetches) ───────────────────
+httpx>=0.27.0
+
+# ── Testing ──────────────────────────────────────────────────────────────────
+pytest>=8.3.0
+pytest-asyncio>=0.24.0

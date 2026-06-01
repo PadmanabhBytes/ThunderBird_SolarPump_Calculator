@@ -1,0 +1,25 @@
+# Performance dataset template
+# ─────────────────────────────────────────────────────────────────────────────
+# Rename this file to <pump_id>.csv (e.g. P001.csv) before filling in data.
+# The pump_id stem must match a row in pump_catalog.csv.
+#
+# Column headers after 'head_ft':
+#   - Each is a power level in WATTS (numeric only, no units suffix)
+#   - Sort ascending left-to-right (lowest power first)
+#   - Include every distinct power level from the manufacturer datasheet
+#
+# Row values (head_ft column):
+#   - Operating head in US FEET
+#   - Include the full range from minimum to shutoff head
+#   - At least 2 rows are required for interpolation
+#   - Rows may be in any order — the loader sorts them
+#
+# Cell values (GPM):
+#   - Achievable flow in US GPM at that (head, power) combination
+#   - Use 0.0 at or above shutoff head (pump delivers no flow)
+#   - Do NOT leave cells blank — fill all cells
+#   - All values must be >= 0.0
+#
+# See SCHEMA.md in this directory for full documentation.
+# ─────────────────────────────────────────────────────────────────────────────
+head_ft,<watts_1>,<watts_2>,<watts_3>
