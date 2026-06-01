@@ -67,13 +67,14 @@ SCENARIOS = [
             pressure_switch=False,
             wire_distance_ft=300.0,
             panel_vmp_v=41.2,
+            pump_rated_flow_gpm=15.0,  # pipe sized at pump rated output (solar-only rule)
         ),
         expected=Expected(
             tdh_ft=291.0,
-            friction_ft=7.7,
+            friction_ft=11.2,     # friction @ 15 GPM (pump rated), not 12 GPM (required)
             panels=5,
-            achievable_gpm=15.1,
-            daily_gpd=6478,
+            achievable_gpm=14.8,
+            daily_gpd=6350,
             wire_awg="10 AWG",
         ),
     ),
@@ -171,9 +172,9 @@ SCENARIOS = [
         expected=Expected(
             tdh_ft=125.0,
             friction_ft=0.0,
-            panels=8,
-            achievable_gpm=20.9,
-            daily_gpd=8960,
+            panels=7,
+            achievable_gpm=20.1,
+            daily_gpd=8620,
             wire_awg="12 AWG",
         ),
     ),

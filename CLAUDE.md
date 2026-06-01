@@ -89,8 +89,19 @@ Pressure Head (ft) = PSI × 2.31
 
 ### Friction loss
 - Goulds Sch 40 PVC table: `data/friction/pvc.csv` (ft per 100 ft)
-- Service interpolates between GPM breakpoints (power-law, not linear)
+- Service rounds the lookup GPM UP to the next table breakpoint (ceiling lookup, not interpolation down)
 - **Known quirk:** 14 GPM row for 1.25" PVC was missing from the official table; reference value 2.56 ft/100ft has been added
+
+### Friction GPM rule — TBS methodology (critical)
+- **Solar-only systems:** friction is calculated at `max(required_gpm, 15.0)` — the pump's rated output (15TBS-4C-AC rated flow). The pipe must handle full pump output in good solar.
+- **Generator-backup systems:** friction is calculated at `required_gpm` only. AC backup controls output.
+- Implemented in `tdh_service.py` → `calculate()` as `_TBS_RATED_FLOW_GPM = 15.0`.
+- Effect: S1 solar-only 12 GPM required → friction @ 15 GPM → 11.2 ft → TDH = 291 ft ✓
+
+### STC efficiency derating — dual-rate design (intentional)
+- **Panel COUNT sizing** (`stc_efficiency_loss` field, default 0.04): uses **4%** derating in `size_panels_for_pump` loop to find minimum n panels. Conservative — ensures the panel count is sufficient.
+- **Achievable GPM display** (`_DISPLAY_STC_LOSS = 0.075` in `ranking_service.py`): always uses **7.5%** derating. Shows realistic real-world output after typical losses.
+- Do NOT change either value without re-running all 5 validation scenarios. Changing panel-count derating from 4% to 7.5% shifts S4 from 7 → 8 panels (wrong).
 
 ### Solar panel count
 ```
@@ -102,13 +113,9 @@ Final:            max(production_panels, deadhead_panels)
 
 ### Wire AWG sizing
 Two strategies based on system type:
-- **Solar-only (no generator backup):** current = pump `rated_power_w` / system Vmp, voltage drop ≤ 5%
-- **With generator backup:** current = (n_panels × panel_wattage) / system Vmp, voltage drop ≤ 10%
-- Minimum floor: 12 AWG (NEC standard for submersible pump drop cables)
+- **Solar-only (no generator backup):** current = pump `rated_power_w` / system Vmp, voltage drop ≤ 5%, min floor **10 AWG**
+- **With generator backup:** current = (n_panels × panel_wattage) / system Vmp, voltage drop ≤ 10%, min floor **12 AWG**
 - System Vmp = n_panels × panel_vmp_v
-
-### STC efficiency derating
-Always 7.5% (previously conditional on generator backup — now fixed to always use 7.5%).
 
 ---
 
@@ -135,13 +142,25 @@ The ranking service uses bilinear interpolation to find:
 All 5 reference scenarios from the client PDF **must pass** before any demo or client share.
 Run `/run-tests` or `cd solar_pump_calculator && .venv/bin/python test_validation_scenarios.py`.
 
-| Scenario | Location | Key inputs | Status |
-|---|---|---|---|
-| S1 | Fort Davis TX | 220 ft static, 12 GPM, 1.25" PVC 300 ft | PASS |
-| S2 | Alamogordo NM | 150 ft static, 15 GPM, 1.5" PVC 700 ft | PASS |
-| S3 | Monte Vista CO | 180 ft static, 14 GPM, generator backup, pressure switch 30/50 psi | PASS |
-| S4 | Monte Vista CO | 80 ft static, 20 GPM, generator backup, 235W panels | PASS |
-| S5 | Cottonwood CA | 460 ft static, 10 GPM, generator backup, 600 ft wire | PASS |
+Verified reference outputs (from "15TBS SYSTEM INPUT SCENARIOS FINAL.pdf" — source of truth):
+
+| Scenario | Location | TDH (ft) | Friction (ft) | Panels | Achievable GPM | Wire AWG |
+|---|---|---|---|---|---|---|
+| S1 — Deep Well, solar-only | Fort Davis TX 79835 | 291 | 11.2 @ 15 GPM | 5 × 400W | 14.8 | 10 AWG |
+| S2 — Medium Well, solar-only | Alamogordo NM 88310 | 217 | 12.2 @ 15 GPM | 5 × 370W | 17.8 | 10 AWG |
+| S3 — Pressure switch + gen backup | Monte Vista CO 81132 | 339 | 6.4 @ 14 GPM | 6 × 370W | 14.1 | 12 AWG |
+| S4 — Shallow well, gen backup | Monte Vista CO 81132 | 125 | 0 | 7 × 235W | 20.1 | 12 AWG |
+| S5 — Very deep, gen backup | Cottonwood CA 96022 | 480 | 0 | 7 × 370W | 10.2 | 10 AWG |
+
+Notes on reference PDF typos (do NOT "fix" these in our output — they are errors in the source doc):
+- S2: reference text says "300 ft pipe" but inputs are 700 ft; friction is correctly calculated at 700 ft
+- S3: reference text says "friction @ 15 GPM" but it is actually @ 14 GPM (required flow, gen-backup rule); the text is a copy-paste error
+- S3: reference text says "Pressure Head: 0'" but TDH=339 requires 92.4 ft of pressure head (40 PSI × 2.31); the "0'" is an error
+
+Verified panel Vmp values (from reference PDF, not from default spec sheet):
+- S1: 5 × 41.2 V = 206 V system Vmp (400W panels)
+- S4: 7 × 31.6 V = 221.2 V system Vmp (235W panels)
+- S5: 7 × 32.4 V = 226.8 V system Vmp (370W panels — actual measured Vmp, not nominal 40V)
 
 ---
 

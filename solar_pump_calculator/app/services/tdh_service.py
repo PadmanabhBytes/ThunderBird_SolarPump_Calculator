@@ -57,6 +57,11 @@ logger = logging.getLogger(__name__)
 _PSI_TO_FT: float = 2.31    # 1 PSI = 2.31 ft of water head  (exact per ASPE)
 _FT_TO_M:   float = 0.3048  # 1 ft  = 0.3048 m               (exact) — used by TDHBreakdown
 
+# TBS methodology: solar-only systems size pipe friction at the pump's full rated output
+# (15 GPM for 15TBS-4C-AC), because the pump can deliver that in good solar conditions.
+# Generator-backup systems size friction at the customer's required flow only.
+_TBS_RATED_FLOW_GPM: float = 15.0
+
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
 
@@ -126,7 +131,13 @@ class TDHService:
         static_head_ft = request.dynamic_water_level_ft + request.discharge_head_ft
 
         # ── Friction loss ─────────────────────────────────────────────────────
-        friction_gpm = request.required_flow_gpm
+        # Solar-only: size pipe at max(required, pump rated output) per TBS methodology.
+        # Generator backup: use required flow only (AC controls output).
+        if request.generator_backup_required:
+            friction_gpm = request.required_flow_gpm
+        else:
+            pump_rated = request.pump_rated_flow_gpm or _TBS_RATED_FLOW_GPM
+            friction_gpm = max(request.required_flow_gpm, pump_rated)
         friction_result = self._friction.calculate(
             material=request.pipe_material.value,
             nominal_diameter_in=request.nominal_pipe_diameter_in,
