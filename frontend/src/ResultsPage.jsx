@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+import html2pdf from 'html2pdf.js'
 import { getAccessories, getSystemFeatures } from './data/accessories'
 import './ResultsPage.css'
 
@@ -53,6 +54,7 @@ export default function ResultsPage({ result, formData, onReset, onEdit }) {
   const [showEquipment, setShowEquipment] = useState(true)
   const [showWire, setShowWire]           = useState(false)
   const [showTdh, setShowTdh]             = useState(false)
+  const pdfRef = useRef(null)
 
   const tier       = result.recommendations?.[activeTier]
   const pump       = tier?.pump
@@ -111,14 +113,21 @@ export default function ResultsPage({ result, formData, onReset, onEdit }) {
     : null
 
   function handlePrint() {
-    const prev = document.title
-    document.title = 'TBS-Solar-Quote'
-    window.print()
-    document.title = prev
+    const el = pdfRef.current
+    if (!el) return
+    const opt = {
+      margin:       [10, 10, 10, 10],
+      filename:     'TBS-Solar-Quote.pdf',
+      image:        { type: 'jpeg', quality: 0.97 },
+      html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak:    { mode: ['avoid-all', 'css'] },
+    }
+    html2pdf().set(opt).from(el).save()
   }
 
   return (
-    <div className="results-page">
+    <div className="results-page" ref={pdfRef}>
       {/* Warnings */}
       {warnings.length > 0 && (
         <div className="warnings-bar">
