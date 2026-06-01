@@ -126,12 +126,7 @@ class TDHService:
         static_head_ft = request.dynamic_water_level_ft + request.discharge_head_ft
 
         # ── Friction loss ─────────────────────────────────────────────────────
-        # When a pump rated flow is specified, size friction at the larger of
-        # required vs. rated flow (ensures pipe can handle full pump output).
-        friction_gpm = max(
-            request.required_flow_gpm,
-            request.pump_rated_flow_gpm if request.pump_rated_flow_gpm else 0.0,
-        )
+        friction_gpm = request.required_flow_gpm
         friction_result = self._friction.calculate(
             material=request.pipe_material.value,
             nominal_diameter_in=request.nominal_pipe_diameter_in,

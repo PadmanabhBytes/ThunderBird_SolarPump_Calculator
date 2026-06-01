@@ -213,8 +213,8 @@ class CalculationRequest(BaseModel):
         description="Open-circuit voltage per panel (Vdc). Used to verify max system voltage."
     )
     stc_efficiency_loss: float = Field(
-        default=0.04, ge=0.0, le=0.30,
-        description="Fractional efficiency loss from STC conditions (0.04 = 4%% derating)."
+        default=0.075, ge=0.0, le=0.30,
+        description="Fractional efficiency loss from STC conditions (0.075 = 7.5%% derating)."
     )
 
     @model_validator(mode="after")
