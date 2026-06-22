@@ -165,9 +165,12 @@ async def _run_calculation(
     # NREL zones 1–5 map 1:1; NREL zone 6 (highest sun) collapses to TBS Zone 5.
     _TBS_GPD_ZONE_COEFF = {1: 0.78, 2: 0.85, 3: 0.92, 4: 1.00, 5: 1.08, 6: 1.08}
     gpd_zone_coeff = _TBS_GPD_ZONE_COEFF.get(nrel_solar_zone, 1.00)
-    tbs_daily_gpd = round(
-        request.required_flow_gpm * 6.5 * 60.0 * 1.1 * gpd_zone_coeff
-    )
+    if request.daily_water_demand_gallons is not None:
+        tbs_daily_gpd = int(request.daily_water_demand_gallons)
+    else:
+        tbs_daily_gpd = round(
+            request.required_flow_gpm * 6.5 * 60.0 * 1.1 * gpd_zone_coeff
+        )
 
     # ── 1. TDH ────────────────────────────────────────────────────────────────
     head_breakdown, pipe_velocity = tdh_service.calculate(
@@ -609,6 +612,28 @@ async def calculate_solar(
         return SolarOnlyResponse(solar_sizing=solar_sizing, warnings=warnings)
     except (CalculationError, DataNotFoundError) as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+
+
+# ── GET /solar-zone — lightweight zone lookup for the frontend wizard ─────────
+
+@router.get(
+    "/solar-zone",
+    summary="Get solar zone and GPD coefficient for a lat/lon location",
+)
+async def get_solar_zone(
+    lat: float = Query(..., description="Latitude"),
+    lon: float = Query(..., description="Longitude"),
+    nrel_service: NRELService = Depends(get_nrel_service),
+):
+    _TBS_GPD_ZONE_COEFF = {1: 0.78, 2: 0.85, 3: 0.92, 4: 1.00, 5: 1.08, 6: 1.08}
+    try:
+        result = await nrel_service.get_solar_resource(lat, lon)
+        if result:
+            zone = result.solar_zone
+            return {"solar_zone": zone, "gpd_coeff": _TBS_GPD_ZONE_COEFF.get(zone, 1.00)}
+    except Exception:
+        pass
+    return {"solar_zone": 4, "gpd_coeff": 1.00}
 
 
 # ── Reference data ────────────────────────────────────────────────────────────

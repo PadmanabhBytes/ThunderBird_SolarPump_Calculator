@@ -242,6 +242,21 @@
   color: #DC2626;
 }
 
+/* GPD proposal box */
+.gpd-proposal {
+  background: #FFF8E8;
+  border: 1.5px solid #E8C84A;
+  border-radius: 8px;
+  padding: 0.875rem 1rem;
+}
+
+.gpd-proposal-text {
+  font-size: 0.9375rem;
+  color: var(--text);
+  margin: 0 0 0.5rem;
+  line-height: 1.55;
+}
+
 /* Backup popup overlay */
 .popup-overlay {
   position: fixed;

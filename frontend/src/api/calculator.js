@@ -62,8 +62,12 @@ function buildRequestBody(f) {
     poor_water_quality:       f.waterQuality === 'poor',
   }
 
-  // Optional daily demand
-  if (f.dailyDemandGallons) body.daily_water_demand_gallons = parseFloat(f.dailyDemandGallons)
+  // Daily demand: use desired GPD when user rejected the calculated value
+  if (f.gpdAccepted === false && f.desiredGpd) {
+    body.daily_water_demand_gallons = parseFloat(f.desiredGpd)
+  } else if (f.dailyDemandGallons) {
+    body.daily_water_demand_gallons = parseFloat(f.dailyDemandGallons)
+  }
 
   // Well casing
   if (f.wellCasing) body.well_casing_diameter_in = parseFloat(f.wellCasing)

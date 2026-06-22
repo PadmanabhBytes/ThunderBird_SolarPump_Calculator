@@ -7,17 +7,23 @@ import { runCalculation } from './api/calculator'
 import './CalculatorForm.css'
 
 const STEPS = [
-  { label: 'Production & TDH', short: '1' },
-  { label: 'Well',             short: '2' },
-  { label: 'Solar',            short: '3' },
-  { label: 'Controls',         short: '4' },
+  { label: 'Location & Flow', short: '1' },
+  { label: 'Well',            short: '2' },
+  { label: 'Solar Panels',    short: '3' },
+  { label: 'Controls',        short: '4' },
 ]
 
 const REQUIRED_FIELDS = {
-  0: ['requiredFlowGpm', 'staticWaterLevel', 'drawdown', 'pipeDiameter', 'pipeLength'],
+  0: ['requiredFlowGpm', 'staticWaterLevel', 'drawdown'],
   1: [],
-  2: [], // lat/long OR peakSunHours — validated in component
+  2: [],
   3: [],
+}
+
+const FIELD_LABELS = {
+  requiredFlowGpm:  'Flow Rate (GPM)',
+  staticWaterLevel: 'Static Water Level',
+  drawdown:         'Expected Drawdown',
 }
 
 function validate(step, data) {
@@ -25,18 +31,16 @@ function validate(step, data) {
     const v = data[k]
     return v === undefined || v === null || v === ''
   })
-  if (missing.length) return `Please fill in: ${missing.join(', ')}`
+  if (missing.length) return `Please fill in: ${missing.map(k => FIELD_LABELS[k] || k).join(', ')}`
 
   if (step === 0) {
-    if (parseFloat(data.requiredFlowGpm) <= 0) return 'GPM must be greater than 0'
-    if (parseFloat(data.staticWaterLevel) <= 0) return 'Static water level must be greater than 0'
-    // pipe diameter / length of 0 means "no pipe run" — allowed
-  }
-
-  if (step === 2) {
     const hasCoords = data.latitude && data.longitude
     const hasPSH    = data.peakSunHours
-    if (!hasCoords && !hasPSH) return 'Enter a ZIP code and click "Look up", enter GPS coordinates, or enter peak sun hours manually.'
+    if (!hasCoords && !hasPSH) {
+      return 'Enter a ZIP code and click "Look up", or enter GPS coordinates, to determine your solar zone before proceeding.'
+    }
+    if (parseFloat(data.requiredFlowGpm) <= 0) return 'GPM must be greater than 0'
+    if (parseFloat(data.staticWaterLevel) <= 0) return 'Static water level must be greater than 0'
   }
   return null
 }
