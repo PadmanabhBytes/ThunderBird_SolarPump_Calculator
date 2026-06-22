@@ -199,11 +199,25 @@ export default function Step1Flow({ data, onChange }) {
             value={data.requiredFlowGpm || ''} onChange={e => set('requiredFlowGpm', e.target.value)} />
           <span className="hint">Required instantaneous flow rate at the pump outlet</span>
         </div>
+
+        <div className="field-group">
+          <label>Estimated Daily Production (GPD)</label>
+          <div className="calc-display">
+            {(!isNaN(gpm) && gpm > 0)
+              ? Math.round(gpm * 6.5 * 60 * 1.1 * (data.gpdZoneCoeff || 1.0)).toLocaleString() + ' GPD'
+              : '—'}
+          </div>
+          <span className="hint">
+            {data.solarZone
+              ? `Zone ${data.solarZone} coefficient applied`
+              : 'Look up location above for zone-adjusted value'}
+          </span>
+        </div>
       </div>
 
       {!hasZone && data.requiredFlowGpm && (
         <div className="info-box">
-          Enter your location above and click "Look up" to see the estimated daily GPD for your solar zone.
+          Enter your location above and click "Look up" to see the zone-adjusted daily GPD estimate.
         </div>
       )}
 

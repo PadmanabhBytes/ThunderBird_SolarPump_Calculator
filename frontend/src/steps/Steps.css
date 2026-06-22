@@ -242,6 +242,20 @@
   color: #DC2626;
 }
 
+/* Read-only calculated value display (looks like a disabled input) */
+.calc-display {
+  padding: 0.5rem 0.75rem;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  background: var(--gold-light, #FFFBEA);
+  color: #7A5700;
+  min-height: 2.4rem;
+  display: flex;
+  align-items: center;
+}
+
 /* GPD proposal box */
 .gpd-proposal {
   background: #FFF8E8;
