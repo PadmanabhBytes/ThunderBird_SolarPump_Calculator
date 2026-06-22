@@ -11,6 +11,9 @@ export default function Step1Flow({ data, onChange }) {
   )
   const [lookup, setLookup] = useState({ loading: false, error: null })
 
+  // TDH mode: default is "Help Me Calculate" (sub-fields shown)
+  const helpMeCalculate = data.helpMeCalculate !== false
+
   function handleLocMode(mode) {
     setLocMode(mode)
     if (mode === 'zip') {
@@ -178,9 +181,9 @@ export default function Step1Flow({ data, onChange }) {
         <div className="field-group">
           <label>Operating Season</label>
           <select value={data.operatingWindow || 'year_round'} onChange={e => set('operatingWindow', e.target.value)}>
-            <option value="year_round">Year Round</option>
-            <option value="summer">Summer Only (Mar – Oct)</option>
-            <option value="winter">Winter Only (Nov – Feb)</option>
+            <option value="year_round">Year Round (annual average)</option>
+            <option value="summer">Summer Only (Apr – Sep average)</option>
+            <option value="winter">Winter Only (Oct – Mar average)</option>
           </select>
         </div>
       </div>
@@ -207,32 +210,31 @@ export default function Step1Flow({ data, onChange }) {
       {proposedGpd !== null && (
         <div className="gpd-proposal">
           <p className="gpd-proposal-text">
-            Based on Solar Zone {data.solarZone} and {gpm.toFixed(1)} GPM, the estimated daily water production is{' '}
-            <strong>{proposedGpd.toLocaleString()} GPD</strong>.
-            Is this sufficient for your needs?
+            Based on your requested flow rate, the estimated daily water production is{' '}
+            <strong>{proposedGpd.toLocaleString()} GPD</strong>. Is this acceptable?
           </p>
           <div className="radio-group" style={{ flexDirection: 'row', gap: '1.5rem', marginTop: '0.5rem' }}>
             <label className="radio-label">
               <input type="radio" name="gpdAccepted" value="yes"
                 checked={data.gpdAccepted !== false}
                 onChange={() => onChange({ ...data, gpdAccepted: true, desiredGpd: '' })} />
-              Yes — {proposedGpd.toLocaleString()} GPD is sufficient
+              Yes
             </label>
             <label className="radio-label">
               <input type="radio" name="gpdAccepted" value="no"
                 checked={data.gpdAccepted === false}
                 onChange={() => onChange({ ...data, gpdAccepted: false })} />
-              No — I need a different daily volume
+              No
             </label>
           </div>
           {data.gpdAccepted === false && (
             <div className="field-grid" style={{ marginTop: '0.75rem' }}>
               <div className="field-group">
-                <label>Required Daily Volume (GPD) <span className="req">*</span></label>
+                <label>Desired Daily Volume (GPD) <span className="req">*</span></label>
                 <input type="number" min="1" placeholder={`e.g. ${proposedGpd}`}
                   value={data.desiredGpd || ''}
                   onChange={e => set('desiredGpd', e.target.value)} />
-                <span className="hint">Your actual daily water demand in gallons per day.</span>
+                <span className="hint">Your required daily water demand in gallons per day.</span>
               </div>
             </div>
           )}
@@ -243,69 +245,111 @@ export default function Step1Flow({ data, onChange }) {
 
       {/* ── d) TDH Components ────────────────────────────────────────────────── */}
       <h3 className="subsection-title">d) TDH Components</h3>
-      <div className="field-grid">
-        <div className="field-group">
-          <label>Static Water Level (ft) <span className="req">*</span></label>
-          <input type="number" min="0" placeholder="e.g. 220"
-            value={data.staticWaterLevel || ''} onChange={e => set('staticWaterLevel', e.target.value)} />
-          <span className="hint">Depth from ground surface to resting water level</span>
-        </div>
 
-        <div className="field-group">
-          <label>Expected Drawdown (ft) <span className="req">*</span></label>
-          <input type="number" min="0" placeholder="e.g. 45"
-            value={data.drawdown || ''} onChange={e => set('drawdown', e.target.value)} />
-          <span className="hint">Additional drop when the pump is running (0 if unknown)</span>
-        </div>
-
-        <div className="field-group">
-          <label>Vertical Elevation Gain (ft)</label>
-          <input type="number" min="0" placeholder="e.g. 15"
-            value={data.elevationGain || ''} onChange={e => set('elevationGain', e.target.value)} />
-          <span className="hint">Height from wellhead to highest delivery point</span>
-        </div>
-
-        <div className="field-group">
-          <label>System Pressure (PSI)</label>
-          <input type="number" min="0" placeholder="e.g. 0"
-            value={data.pressurePsi || ''} onChange={e => set('pressurePsi', e.target.value)} />
-          <span className="hint">Required delivery pressure (0 if none)</span>
+      <div className="field-row">
+        <div className="radio-group" style={{ flexDirection: 'row', gap: '1.5rem' }}>
+          <label className="radio-label">
+            <input type="radio" name="tdhMode" value="calculate"
+              checked={helpMeCalculate}
+              onChange={() => set('helpMeCalculate', true)} />
+            Help Me Calculate (I don't know my TDH)
+          </label>
+          <label className="radio-label">
+            <input type="radio" name="tdhMode" value="direct"
+              checked={!helpMeCalculate}
+              onChange={() => set('helpMeCalculate', false)} />
+            I know my TDH — enter directly
+          </label>
         </div>
       </div>
 
-      {data.staticWaterLevel && data.drawdown && (
-        <div className="calc-preview">
-          <span>Pumping Level:</span>
-          <strong>{(parseFloat(data.staticWaterLevel) + parseFloat(data.drawdown)).toFixed(0)} ft</strong>
+      {!helpMeCalculate ? (
+        <div className="field-grid">
+          <div className="field-group">
+            <label>Total Dynamic Head (ft) <span className="req">*</span></label>
+            <input type="number" min="1" placeholder="e.g. 291"
+              value={data.directTdh || ''}
+              onChange={e => set('directTdh', e.target.value)} />
+            <span className="hint">Total head the pump must overcome (provided by driller or previous calculation)</span>
+          </div>
         </div>
+      ) : (
+        <>
+          <div className="field-grid">
+            <div className="field-group">
+              <label>Static Water Level (ft) <span className="req">*</span></label>
+              <input type="number" min="0" placeholder="e.g. 220"
+                value={data.staticWaterLevel || ''} onChange={e => set('staticWaterLevel', e.target.value)} />
+              <span className="hint">Depth from ground surface to resting water level</span>
+            </div>
+
+            <div className="field-group">
+              <label>Expected Drawdown (ft) <span className="req">*</span></label>
+              <input type="number" min="0" placeholder="e.g. 45 (or 0)"
+                value={data.drawdown || ''} onChange={e => set('drawdown', e.target.value)} />
+              <span className="hint">Additional drop when the pump is running (enter 0 if unknown)</span>
+            </div>
+
+            <div className="field-group">
+              <label>Vertical Elevation Gain (ft) <span className="req">*</span></label>
+              <input type="number" min="0" placeholder="e.g. 15 (or 0)"
+                value={data.elevationGain ?? ''} onChange={e => set('elevationGain', e.target.value)} />
+              <span className="hint">Height from wellhead to highest delivery point (0 if at ground level)</span>
+            </div>
+
+            <div className="field-group">
+              <label>System Pressure (PSI) <span className="req">*</span></label>
+              <input type="number" min="0" placeholder="e.g. 40 (or 0)"
+                value={data.pressurePsi ?? ''} onChange={e => set('pressurePsi', e.target.value)} />
+              <span className="hint">Required delivery pressure — enter 0 if none</span>
+            </div>
+          </div>
+
+          {data.staticWaterLevel && data.drawdown && (
+            <div className="calc-preview">
+              <span>Pumping Level:</span>
+              <strong>{(parseFloat(data.staticWaterLevel) + parseFloat(data.drawdown)).toFixed(0)} ft</strong>
+            </div>
+          )}
+        </>
       )}
 
       <div className="divider" />
 
       {/* ── Friction loss — pipe run ─────────────────────────────────────────── */}
       <h3 className="subsection-title">Friction Loss — Pipe Line Run</h3>
-      <div className="field-grid">
-        <div className="field-group">
-          <label>Pipe Material</label>
-          <select value={data.pipeMaterial || 'PVC'} onChange={e => set('pipeMaterial', e.target.value)}>
-            {PIPE_MATERIALS.map(m => <option key={m}>{m}</option>)}
-          </select>
-        </div>
 
-        <div className="field-group">
-          <label>Nominal Pipe Diameter (inches)</label>
-          <input type="number" min="0.5" step="0.25" placeholder='e.g. 1.25 for 1-1/4"'
-            value={data.pipeDiameter || ''} onChange={e => set('pipeDiameter', e.target.value)} />
-          <span className="hint">Leave blank if no pipe run</span>
-        </div>
-
-        <div className="field-group">
-          <label>Pipe Run Length (ft)</label>
-          <input type="number" min="1" placeholder="e.g. 300"
-            value={data.pipeLength || ''} onChange={e => set('pipeLength', e.target.value)} />
-          <span className="hint">Total pipe length from pump to delivery point</span>
-        </div>
+      <div className="field-row">
+        <label className="checkbox-label">
+          <input type="checkbox" checked={data.hasPipeRun === true}
+            onChange={e => set('hasPipeRun', e.target.checked)} />
+          Is there a pipe run between the well head and the destination?
+        </label>
       </div>
+
+      {data.hasPipeRun && (
+        <div className="field-grid">
+          <div className="field-group">
+            <label>Pipe Material <span className="req">*</span></label>
+            <select value={data.pipeMaterial || 'PVC'} onChange={e => set('pipeMaterial', e.target.value)}>
+              {PIPE_MATERIALS.map(m => <option key={m}>{m}</option>)}
+            </select>
+          </div>
+
+          <div className="field-group">
+            <label>Nominal Pipe Diameter (inches) <span className="req">*</span></label>
+            <input type="number" min="0.5" step="0.25" placeholder='e.g. 1.25 for 1-1/4"'
+              value={data.pipeDiameter || ''} onChange={e => set('pipeDiameter', e.target.value)} />
+          </div>
+
+          <div className="field-group">
+            <label>Pipe Run Length (ft) <span className="req">*</span></label>
+            <input type="number" min="1" placeholder="e.g. 300"
+              value={data.pipeLength || ''} onChange={e => set('pipeLength', e.target.value)} />
+            <span className="hint">Horizontal/linear distance from wellhead to destination</span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

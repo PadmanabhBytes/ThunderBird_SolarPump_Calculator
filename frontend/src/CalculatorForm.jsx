@@ -13,35 +13,40 @@ const STEPS = [
   { label: 'Controls',        short: '4' },
 ]
 
-const REQUIRED_FIELDS = {
-  0: ['requiredFlowGpm', 'staticWaterLevel', 'drawdown'],
-  1: [],
-  2: [],
-  3: [],
-}
-
-const FIELD_LABELS = {
-  requiredFlowGpm:  'Flow Rate (GPM)',
-  staticWaterLevel: 'Static Water Level',
-  drawdown:         'Expected Drawdown',
-}
-
 function validate(step, data) {
-  const missing = REQUIRED_FIELDS[step].filter(k => {
-    const v = data[k]
-    return v === undefined || v === null || v === ''
-  })
-  if (missing.length) return `Please fill in: ${missing.map(k => FIELD_LABELS[k] || k).join(', ')}`
+  if (step !== 0) return null
 
-  if (step === 0) {
-    const hasCoords = data.latitude && data.longitude
-    const hasPSH    = data.peakSunHours
-    if (!hasCoords && !hasPSH) {
-      return 'Enter a ZIP code and click "Look up", or enter GPS coordinates, to determine your solar zone before proceeding.'
-    }
-    if (parseFloat(data.requiredFlowGpm) <= 0) return 'GPM must be greater than 0'
-    if (parseFloat(data.staticWaterLevel) <= 0) return 'Static water level must be greater than 0'
+  // Location
+  const hasCoords = data.latitude && data.longitude
+  const hasPSH    = data.peakSunHours
+  if (!hasCoords && !hasPSH) {
+    return 'Enter a ZIP code and click "Look up", or enter GPS coordinates, to determine your solar zone before proceeding.'
   }
+
+  // GPM
+  if (!data.requiredFlowGpm) return 'Please enter the required flow rate (GPM).'
+  if (parseFloat(data.requiredFlowGpm) <= 0) return 'GPM must be greater than 0'
+
+  // TDH
+  const helpMeCalculate = data.helpMeCalculate !== false  // default: true
+  if (!helpMeCalculate) {
+    if (!data.directTdh) return 'Please enter the Total Dynamic Head (TDH).'
+    if (parseFloat(data.directTdh) <= 0) return 'TDH must be greater than 0'
+  } else {
+    if (!data.staticWaterLevel) return 'Please enter the Static Water Level.'
+    if (parseFloat(data.staticWaterLevel) <= 0) return 'Static water level must be greater than 0'
+    const empty = v => v === '' || v === undefined || v === null
+    if (empty(data.drawdown))     return 'Please enter Expected Drawdown (0 if unknown).'
+    if (empty(data.elevationGain)) return 'Please enter Vertical Elevation Gain (0 if none).'
+    if (empty(data.pressurePsi))   return 'Please enter System Pressure (0 if none).'
+  }
+
+  // Pipe run
+  if (data.hasPipeRun) {
+    if (!data.pipeDiameter) return 'Please enter the pipe diameter.'
+    if (!data.pipeLength)   return 'Please enter the pipe run length.'
+  }
+
   return null
 }
 

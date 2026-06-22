@@ -34,25 +34,39 @@ function num(val, fallback) {
 }
 
 function buildRequestBody(f) {
-  /** @type {Record<string, unknown>} */
-  const staticLevel = num(f.staticWaterLevel)
-  const drawdown    = num(f.drawdown, 0)
+  // TDH mode: default is "Help Me Calculate" (sub-fields visible)
+  const helpMeCalculate = f.helpMeCalculate !== false
 
-  // 0 or missing pipe fields mean "no pipe run" — use a large-diameter short run
-  // so the backend gets a valid gt=0 value and friction ≈ 0
-  const pipeDia = num(f.pipeDiameter, 0)
-  const pipeLen = num(f.pipeLength, 0)
-  const noPipe  = !pipeDia || !pipeLen
+  // Static level + drawdown — direct TDH encodes as static=TDH, drawdown=0
+  let staticLevel, drawdown, elevationGain, pressurePsi
+  if (helpMeCalculate) {
+    staticLevel  = num(f.staticWaterLevel)
+    drawdown     = num(f.drawdown, 0)
+    elevationGain = num(f.elevationGain, 0)
+    pressurePsi  = num(f.pressurePsi, 0)
+  } else {
+    const tdh    = num(f.directTdh, 0)
+    staticLevel  = tdh
+    drawdown     = 0
+    elevationGain = 0
+    pressurePsi  = 0
+  }
+
+  // Pipe run: only include when user checked "Is there a pipe run?"
+  const hasPipeRun = f.hasPipeRun === true
+  const pipeDia    = hasPipeRun ? num(f.pipeDiameter, 0) : 0
+  const pipeLen    = hasPipeRun ? num(f.pipeLength, 0)   : 0
+  const noPipe     = !pipeDia || !pipeLen
 
   const body = {
     static_water_level_ft:    staticLevel,
     dynamic_water_level_ft:   staticLevel + drawdown,
-    discharge_head_ft:        num(f.elevationGain, 0),
+    discharge_head_ft:        elevationGain,
     required_flow_gpm:        num(f.requiredFlowGpm),
     pipe_material:            f.pipeMaterial || 'PVC',
     nominal_pipe_diameter_in: noPipe ? 4.0 : pipeDia,
     pipe_length_ft:           noPipe ? 1   : pipeLen,
-    discharge_pressure_psi:   num(f.pressurePsi, 0),
+    discharge_pressure_psi:   pressurePsi,
     panel_wattage_w:          num(f.panelWattage, 370),
     solar_coefficient:        1.0,
     float_switch:             f.floatSwitch === true,
@@ -75,7 +89,6 @@ function buildRequestBody(f) {
   // Recovery rate — required unless Unknown is checked
   if (f.recoveryUnknown) {
     body.well_recovery_unknown = true
-    // Pass dry concern flag when unknown: true=concern, false=no concern, null=not answered
     if (f.dryRunConcern === 'yes') body.well_recovery_dry_concern = true
     else if (f.dryRunConcern === 'no') body.well_recovery_dry_concern = false
   } else {
@@ -92,7 +105,7 @@ function buildRequestBody(f) {
   // Panel Vmp — required for accurate wire sizing
   if (f.panelVmpV) body.panel_vmp_v = parseFloat(f.panelVmpV)
 
-  // Panel Voc — used to compute system open-circuit voltage display
+  // Panel Voc
   if (f.panelVocV) body.panel_voc_v = parseFloat(f.panelVocV)
 
   // Location — prefer coords over manual peak_sun_hours
