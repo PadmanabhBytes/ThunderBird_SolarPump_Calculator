@@ -92,6 +92,14 @@ class PumpFilterService:
                     hard_stop=True,
                 )
 
+            # Warning for exactly 4" casing — pump fits but clearance is tight
+            if 4.0 <= well_casing_diameter_in < 4.5:
+                reasons.append(
+                    "Warning: 4\" well casing selected with an AC/DC 4\" pump option. "
+                    "Ensure the actual inner casing diameter meets minimum clearance "
+                    "requirements for the selected pump before installation."
+                )
+
             if well_casing_diameter_in < 4.5:
                 before = len(filtered)
                 filtered = [p for p in filtered if p.min_casing_diameter_in <= well_casing_diameter_in]

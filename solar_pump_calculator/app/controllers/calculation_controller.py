@@ -121,15 +121,20 @@ async def _run_calculation(
     """
     warnings: List[str] = []
 
+    # Treat generator OR grid backup as "has AC backup" throughout the pipeline
+    is_ac_backup = request.generator_backup_required or request.grid_backup_required
+
     # ── 0. Solar Resource Lookup ──────────────────────────────────────────────
     peak_sun_hours   = request.peak_sun_hours
     solar_coefficient = request.solar_coefficient   # may be overridden by NREL zone
+    nrel_solar_zone: int = 4   # default Zone 4 when NREL is unavailable
 
     if request.latitude is not None and request.longitude is not None:
         nrel_result = await nrel_service.get_solar_resource(request.latitude, request.longitude)
         if nrel_result is not None:
             peak_sun_hours    = nrel_result.peak_sun_hours
             solar_coefficient = nrel_result.coefficient
+            nrel_solar_zone   = nrel_result.solar_zone
             warnings.append(
                 f"NREL: GHI={nrel_result.ghi:.2f} kWh/m²/day → "
                 f"Solar Zone {nrel_result.solar_zone} → "
@@ -142,17 +147,27 @@ async def _run_calculation(
 
     # When NREL didn't supply a zone coefficient (manual PSH or NREL failure),
     # derive it from peak_sun_hours treated as a GHI proxy.
-    # Generator backup covers low-sun days, so no zone oversize is needed.
     if solar_coefficient == 1.0 and peak_sun_hours is not None:
-        zone_id, solar_coefficient = SolarZoneRegistry.zone_from_ghi(peak_sun_hours)
+        nrel_solar_zone, solar_coefficient = SolarZoneRegistry.zone_from_ghi(peak_sun_hours)
         warnings.append(
             f"Manual PSH {peak_sun_hours:.1f} h/day → "
-            f"Solar Zone {zone_id} → array coefficient {solar_coefficient:.2f}×"
+            f"Solar Zone {nrel_solar_zone} → array coefficient {solar_coefficient:.2f}×"
         )
 
     if peak_sun_hours is None:
         peak_sun_hours = 5.0
         warnings.append("No solar resource available. Defaulting to 5.0 peak sun hours.")
+
+    # ── 0a. TBS GPD formula (zone-adjusted) ──────────────────────────────────
+    # GPD = GPM × 6.5 × 60 × 1.1 × TBS_GPD_ZONE_COEFF
+    # TBS 5-zone GPD coefficients (different from panel-count zone coefficients):
+    #   Zone 1 = 0.78, Zone 2 = 0.85, Zone 3 = 0.92, Zone 4 = 1.00, Zone 5 = 1.08
+    # NREL zones 1–5 map 1:1; NREL zone 6 (highest sun) collapses to TBS Zone 5.
+    _TBS_GPD_ZONE_COEFF = {1: 0.78, 2: 0.85, 3: 0.92, 4: 1.00, 5: 1.08, 6: 1.08}
+    gpd_zone_coeff = _TBS_GPD_ZONE_COEFF.get(nrel_solar_zone, 1.00)
+    tbs_daily_gpd = round(
+        request.required_flow_gpm * 6.5 * 60.0 * 1.1 * gpd_zone_coeff
+    )
 
     # ── 1. TDH ────────────────────────────────────────────────────────────────
     head_breakdown, pipe_velocity = tdh_service.calculate(
@@ -193,7 +208,7 @@ async def _run_calculation(
     filter_result = pump_filter_service.filter_pumps(
         pumps=all_pumps,
         well_casing_diameter_in=request.well_casing_diameter_in,
-        generator_backup_required=request.generator_backup_required,
+        generator_backup_required=is_ac_backup,
         poor_water_quality=request.poor_water_quality,
     )
     warnings.extend(filter_result.reasons)
@@ -216,7 +231,7 @@ async def _run_calculation(
         )
         return CalculationResponse(
             required_flow_gpm=request.required_flow_gpm,
-            daily_water_demand_gallons=request.gpd,
+            daily_water_demand_gallons=float(tbs_daily_gpd),
             peak_sun_hours=peak_sun_hours,
             solar_coefficient=solar_coefficient,
             head_breakdown=head_breakdown,
@@ -253,12 +268,12 @@ async def _run_calculation(
         deadhead_watts=request.deadhead_watts,
         pump_eval_service=pump_eval_service,
         stc_efficiency_loss=request.stc_efficiency_loss,
-        generator_backup_required=request.generator_backup_required,
+        generator_backup_required=is_ac_backup,
         pump_rated_gpm_fallback=request.pump_rated_flow_gpm,
     )
 
     # ── Demand vs. daily pump runtime check ───────────────────────────────────
-    effective_gpd    = request.gpd
+    effective_gpd    = float(tbs_daily_gpd)
     max_daily_volume = request.required_flow_gpm * 60.0 * peak_sun_hours
     if effective_gpd > max_daily_volume:
         warnings.append(
@@ -269,11 +284,15 @@ async def _run_calculation(
 
     # ── Well recovery rate warnings ────────────────────────────────────────────
     if request.well_recovery_unknown:
-        warnings.append(
-            "Well recovery rate is unknown. "
-            "Recommend installing dry-run protection (dry well sensor) to prevent "
-            "pump damage if the well runs dry."
-        )
+        # Only warn / apply filters when customer expressed dry-well concern (or concern unknown)
+        dry_concern = request.well_recovery_dry_concern
+        if dry_concern is True or dry_concern is None:
+            warnings.append(
+                "Well recovery rate is unknown. "
+                "Recommend installing dry-run protection (dry well sensor) to prevent "
+                "pump damage if the well runs dry."
+            )
+        # No warning when dry_concern is explicitly False (unknown rate, no concern)
     elif request.recovery_rate_gpm is not None:
         if request.recovery_rate_gpm < request.required_flow_gpm:
             warnings.append(
@@ -288,79 +307,54 @@ async def _run_calculation(
                 "Consider dry-run protection as a precaution."
             )
 
-    # ── 6. Wire sizing ─────────────────────────────────────────────────────────
+    # ── 6. Wire sizing (TBS method) ────────────────────────────────────────────
     from ..models.calculation_response import WireSizingResponse
     wire_sizing_response = None
-    if request.wire_distance_ft is not None:
+    if request.wire_distance_ft is not None and request.panel_vmp_v is not None:
         try:
-            # Determine system voltage: prefer N_panels × panel_vmp_v (DC array
-            # voltage), fall back to pump catalog voltage or 220V.
             prec = recommendations.precise
-            n_panels_for_wire = prec.solar_panels if prec else None
-            if request.panel_vmp_v is not None and n_panels_for_wire is not None:
-                wire_voltage = n_panels_for_wire * request.panel_vmp_v
-            elif prec is not None and prec.pump is not None:
-                # Extract numeric voltage from catalog string (e.g. "220" → 220.0)
-                raw_v = prec.pump.voltage_range or "220"
-                try:
-                    wire_voltage = float(str(raw_v).split("-")[0].split("/")[0].strip())
-                except (ValueError, AttributeError):
-                    wire_voltage = 220.0
-            else:
-                wire_voltage = 220.0
+            n_panels = prec.solar_panels if prec else None
 
-            # Wire sizing strategy differs by system type:
-            #   Solar-only: size for pump motor rated power (AC full-load current), 5% drop
-            #   Generator backup: size for DC array output (n_panels × panel_wattage), 10% drop
-            # The 10% limit for backup systems matches solar pump field practice where the
-            # MPPT controller tolerates array-side voltage variation and deep-well runs.
-            if request.generator_backup_required and prec is not None:
-                wire_watts    = prec.solar_panels * request.panel_wattage_w
-                max_drop_frac = 0.10
-            else:
-                wire_watts = (
-                    prec.operating_wattage_w
-                    if prec is not None and prec.operating_wattage_w is not None
-                    else fallback_power_w
+            if n_panels is not None and n_panels > 0:
+                # Pump max_watts cap — from catalog; default 3000W if not specified
+                pump_max_w = (
+                    prec.pump.max_watts
+                    if prec is not None and prec.pump.max_watts is not None
+                    else 3000.0
                 )
-                max_drop_frac = 0.05
+                # Solar-only: 5% drop limit, 10 AWG floor
+                # AC backup (generator or grid): 10% drop limit, 12 AWG floor
+                max_drop_frac = 0.10 if is_ac_backup else 0.05
+                min_awg = "12 AWG" if is_ac_backup else "10 AWG"
 
-            ws = wire_sizing_service.calculate(
-                wire_distance_ft=request.wire_distance_ft,
-                operating_watts=wire_watts,
-                system_voltage=wire_voltage,
-                max_drop_fraction=max_drop_frac,
-            )
+                ws = wire_sizing_service.calculate_tbs(
+                    wire_distance_ft=request.wire_distance_ft,
+                    n_panels_series=n_panels,
+                    panel_vmp_v=request.panel_vmp_v,
+                    n_panels_total=n_panels,
+                    panel_wattage_w=request.panel_wattage_w,
+                    pump_max_watts=pump_max_w,
+                    max_drop_fraction=max_drop_frac,
+                    min_awg=min_awg,
+                )
 
-            # TBS minimum wire standards:
-            #   Solar-only: 10 AWG (heavier due to DC continuous-duty rating)
-            #   Generator backup: 12 AWG (MPPT controller handles current variation)
-            _AWG_RANK = [
-                "14 AWG", "12 AWG", "10 AWG", "8 AWG", "6 AWG", "4 AWG",
-                "3 AWG", "2 AWG", "1 AWG", "1/0 AWG", "2/0 AWG", "3/0 AWG", "4/0 AWG",
-            ]
-            _MIN_AWG = "12 AWG" if request.generator_backup_required else "10 AWG"
-            try:
-                if _AWG_RANK.index(ws.recommended_awg) < _AWG_RANK.index(_MIN_AWG):
-                    final_awg = _MIN_AWG
-                else:
-                    final_awg = ws.recommended_awg
-            except ValueError:
-                final_awg = ws.recommended_awg
-
-            wire_sizing_response = WireSizingResponse(
-                recommended_awg=final_awg,
-                wire_distance_ft=ws.wire_distance_ft,
-                operating_watts=ws.operating_watts,
-                system_voltage=ws.system_voltage,
-                operating_current_a=ws.operating_current_a,
-                voltage_drop_v=ws.voltage_drop_v,
-                voltage_drop_percent=ws.voltage_drop_percent,
-                resistance_per_1000ft=ws.resistance_per_1000ft,
-                note=ws.note,
-            )
-            if ws.note:
-                warnings.append(f"Wire sizing: {ws.note}")
+                wire_sizing_response = WireSizingResponse(
+                    recommended_awg=ws.recommended_awg,
+                    wire_distance_ft=ws.wire_distance_ft,
+                    operating_watts=ws.operating_watts,
+                    system_voltage=ws.system_voltage,
+                    operating_current_a=ws.operating_current_a,
+                    voltage_drop_v=ws.voltage_drop_v,
+                    voltage_drop_percent=ws.voltage_drop_percent,
+                    resistance_per_1000ft=ws.resistance_per_1000ft,
+                    note=ws.note,
+                    vmp_array_v=ws.vmp_array_v,
+                    system_power_w=ws.system_power_w,
+                    amp_draw_a=ws.amp_draw_a,
+                    max_length_by_gauge=ws.max_length_by_gauge,
+                )
+                if ws.note:
+                    warnings.append(f"Wire sizing: {ws.note}")
         except Exception as exc:
             warnings.append(f"Wire sizing calculation skipped: {exc}")
 
@@ -383,10 +377,25 @@ async def _run_calculation(
             category="TBS",
             reason="Pressure switch requested for system pressure control.",
         ))
-    if request.well_recovery_unknown or (
-        request.recovery_rate_gpm is not None
-        and request.recovery_rate_gpm < request.required_flow_gpm
-    ):
+
+    # Grid backup requires an AC surge protector (SKU 344-1001)
+    if request.grid_backup_required:
+        accessories.append(AccessoryItem(
+            sku="344-1001",
+            name="AC Surge Protection Device (300VAC)",
+            category="TBS",
+            reason="Required for grid (utility) backup — protects AC/DC equipment from grid surges.",
+        ))
+
+    # Dry-run protection when recovery is unknown-with-concern or flow exceeds recovery
+    needs_dry_run = (
+        (request.well_recovery_unknown and request.well_recovery_dry_concern is not False)
+        or (
+            request.recovery_rate_gpm is not None
+            and request.recovery_rate_gpm < request.required_flow_gpm
+        )
+    )
+    if needs_dry_run:
         accessories.append(AccessoryItem(
             sku=None,
             name="Dry Well Sensor (Dry-Run Protection)",
@@ -396,7 +405,7 @@ async def _run_calculation(
 
     return CalculationResponse(
         required_flow_gpm=request.required_flow_gpm,
-        daily_water_demand_gallons=request.gpd,
+        daily_water_demand_gallons=float(tbs_daily_gpd),
         peak_sun_hours=peak_sun_hours,
         solar_coefficient=solar_coefficient,
         head_breakdown=head_breakdown,

@@ -93,8 +93,10 @@ export default function ResultsPage({ result, formData, onReset, onEdit }) {
   const headMarginFt  = tdh != null && headMarginPct != null ? (headMarginPct / 100) * tdh : null
 
   const peakFlow   = tier?.achievable_gpm ?? pump?.max_flow_gpm
-  // GPD formula: GPM × 6.5 hrs × 60 min × 1.1 buffer — matches spec sheet
-  const dailyOut   = peakFlow != null ? Math.round(peakFlow * 6.5 * 60 * 1.1) : null
+  // Use zone-adjusted GPD from backend (GPM × 6.5 × 60 × 1.1 × solar_zone_coeff)
+  const dailyOut   = result.daily_water_demand_gallons
+    ? Math.round(result.daily_water_demand_gallons)
+    : (peakFlow != null ? Math.round(peakFlow * 6.5 * 60 * 1.1) : null)
 
   // Solar system voltages
   const panelVoc   = parseFloat(formData.panelVocV) || null

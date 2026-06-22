@@ -367,6 +367,7 @@ class PumpRepository:
             price_usd=_opt_float(row.get("price_usd")),
             description=_opt_str(row.get("description")),
             rated_flow_gpm=_opt_float(row.get("rated_flow_gpm")),
+            max_watts=_opt_float(row.get("max_watts")),
         )
 
     # ── Private: performance datasets ─────────────────────────────────────────

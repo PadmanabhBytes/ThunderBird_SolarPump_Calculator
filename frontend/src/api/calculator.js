@@ -58,6 +58,7 @@ function buildRequestBody(f) {
     float_switch:             f.floatSwitch === true,
     pressure_switch:          f.pressureSwitch === true,
     generator_backup_required: f.generatorBackup === true,
+    grid_backup_required:     f.gridBackup === true,
     poor_water_quality:       f.waterQuality === 'poor',
   }
 
@@ -67,9 +68,16 @@ function buildRequestBody(f) {
   // Well casing
   if (f.wellCasing) body.well_casing_diameter_in = parseFloat(f.wellCasing)
 
-  // Recovery rate + dry-run concern
-  if (f.recoveryRate) body.recovery_rate_gpm = parseFloat(f.recoveryRate)
-  body.well_recovery_unknown = f.dryRunConcern === 'yes' || !f.recoveryRate
+  // Recovery rate — required unless Unknown is checked
+  if (f.recoveryUnknown) {
+    body.well_recovery_unknown = true
+    // Pass dry concern flag when unknown: true=concern, false=no concern, null=not answered
+    if (f.dryRunConcern === 'yes') body.well_recovery_dry_concern = true
+    else if (f.dryRunConcern === 'no') body.well_recovery_dry_concern = false
+  } else {
+    body.well_recovery_unknown = false
+    if (f.recoveryRate) body.recovery_rate_gpm = parseFloat(f.recoveryRate)
+  }
 
   // Pressure switch range
   if (f.pressureSwitch && f.pressureSwitchRange) body.pressure_switch_range = f.pressureSwitchRange

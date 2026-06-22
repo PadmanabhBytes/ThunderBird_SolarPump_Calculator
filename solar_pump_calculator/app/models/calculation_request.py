@@ -123,7 +123,15 @@ class CalculationRequest(BaseModel):
         default=False,
         description=(
             "Set True if the well recovery rate is unknown. "
-            "Triggers a recommendation to install dry-run protection."
+            "When True, well_recovery_dry_concern controls whether recovery filters apply."
+        )
+    )
+    well_recovery_dry_concern: Optional[bool] = Field(
+        default=None,
+        description=(
+            "When well_recovery_unknown=True, indicates whether the customer has concern "
+            "about the well running dry. True → apply recovery filters + dry-run warning. "
+            "False → skip recovery filters (unknown rate, no concern)."
         )
     )
 
@@ -141,8 +149,16 @@ class CalculationRequest(BaseModel):
     generator_backup_required: bool = Field(
         default=False,
         description=(
-            "Set True if this system will have a generator or grid backup. "
+            "Set True if this system will have a generator backup. "
             "Excludes DC-only pump designs unless no AC-compatible pump meets requirements."
+        )
+    )
+    grid_backup_required: bool = Field(
+        default=False,
+        description=(
+            "Set True if this system will have a grid (utility) backup. "
+            "Triggers AC surge protector SKU 344-1001 in the parts list. "
+            "Excludes DC-only pump designs."
         )
     )
 

@@ -148,6 +148,12 @@ class Pump(BaseModel):
         )
     )
 
+    # ── TBS wire sizing cap ───────────────────────────────────────────────────
+    max_watts: Optional[float] = Field(
+        None, gt=0,
+        description="Maximum input power cap for TBS wire sizing formula (W). Caps System_Power = MIN(array_watts, max_watts)."
+    )
+
     # ── Commercial ────────────────────────────────────────────────────────────
     price_usd:   Optional[float] = Field(None, ge=0, description="Indicative price (USD)")
     description: Optional[str]   = Field(None,        description="Free-text notes")

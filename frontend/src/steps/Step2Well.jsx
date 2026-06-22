@@ -10,40 +10,65 @@ const WATER_QUALITY = [
 
 export default function Step2Well({ data, onChange }) {
   const set = (k, v) => onChange({ ...data, [k]: v })
-  const dryRunConcern = data.dryRunConcern === 'yes'
+  const recoveryUnknown = data.recoveryUnknown === true
 
   return (
     <div className="step-section">
       <h2 className="step-title">Well Characteristics</h2>
-      <p className="step-subtitle">Well recovery, casing, water quality, and system configuration.</p>
+      <p className="step-subtitle">Well recovery, casing, and water quality.</p>
 
-      {/* ── c) Recovery Rate ──────────────────────────────────────────────────── */}
+      {/* ── Recovery Rate ──────────────────────────────────────────────────────── */}
       <h3 className="subsection-title">c) Recovery Rate</h3>
 
       <div className="field-row">
-        <span className="field-label-inline">Is there any concern with the well running dry?</span>
-        <div className="radio-group" style={{ flexDirection: 'row', gap: '1.5rem', marginTop: '0.5rem' }}>
-          <label className="radio-label">
-            <input type="radio" name="dryRunConcern" value="no"
-              checked={!dryRunConcern} onChange={() => set('dryRunConcern', 'no')} />
-            No
-          </label>
-          <label className="radio-label">
-            <input type="radio" name="dryRunConcern" value="yes"
-              checked={dryRunConcern} onChange={() => set('dryRunConcern', 'yes')} />
-            Yes — add dry-run protection recommendation
-          </label>
-        </div>
+        <label className="checkbox-label">
+          <input type="checkbox" checked={recoveryUnknown}
+            onChange={e => {
+              const checked = e.target.checked
+              onChange({
+                ...data,
+                recoveryUnknown: checked,
+                recoveryRate: checked ? '' : data.recoveryRate,
+                dryRunConcern: checked ? data.dryRunConcern : undefined,
+              })
+            }} />
+          Recovery rate unknown
+        </label>
       </div>
 
-      <div className="field-grid" style={{ marginTop: '1rem' }}>
-        <div className="field-group">
-          <label>Recovery Rate of the Well (GPM)</label>
-          <input type="number" min="0" placeholder="e.g. 20"
-            value={data.recoveryRate || ''} onChange={e => set('recoveryRate', e.target.value)} />
-          <span className="hint">How fast the well refills under pumping. Leave blank if unknown.</span>
+      {!recoveryUnknown && (
+        <div className="field-grid" style={{ marginTop: '0.5rem' }}>
+          <div className="field-group">
+            <label>Recovery Rate of the Well (GPM) <span className="req">*</span></label>
+            <input
+              type="number" min="0.1" step="0.1" placeholder="e.g. 20"
+              value={data.recoveryRate || ''}
+              onChange={e => set('recoveryRate', e.target.value)}
+            />
+            <span className="hint">How fast the well refills under pumping.</span>
+          </div>
         </div>
-      </div>
+      )}
+
+      {recoveryUnknown && (
+        <div style={{ marginTop: '0.75rem', paddingLeft: '1.5rem' }}>
+          <span className="field-label-inline">Is there any concern of the well running dry?</span>
+          <div className="radio-group" style={{ flexDirection: 'row', gap: '1.5rem', marginTop: '0.5rem' }}>
+            <label className="radio-label">
+              <input type="radio" name="dryRunConcern" value="no"
+                checked={data.dryRunConcern === 'no'}
+                onChange={() => set('dryRunConcern', 'no')} />
+              No — recovery filters will not apply
+            </label>
+            <label className="radio-label">
+              <input type="radio" name="dryRunConcern" value="yes"
+                checked={data.dryRunConcern === 'yes'}
+                onChange={() => set('dryRunConcern', 'yes')} />
+              Yes — add dry-run protection recommendation
+            </label>
+          </div>
+        </div>
+      )}
 
       <div className="divider" />
 
@@ -73,19 +98,6 @@ export default function Step2Well({ data, onChange }) {
             {WATER_QUALITY.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
-      </div>
-
-      <div className="divider" />
-
-      {/* ── System Configuration ─────────────────────────────────────────────── */}
-      <h3 className="subsection-title">System Configuration</h3>
-
-      <div className="field-row">
-        <label className="checkbox-label">
-          <input type="checkbox" checked={data.generatorBackup || false}
-            onChange={e => set('generatorBackup', e.target.checked)} />
-          Generator or grid backup required — excludes DC-only pumps
-        </label>
       </div>
 
       <div className="divider" />

@@ -92,16 +92,21 @@ class PumpRecommendation(BaseModel):
 
 
 class WireSizingResponse(BaseModel):
-    """Recommended wire gauge and supporting voltage-drop data."""
-    recommended_awg: str = Field(..., description="Recommended copper wire gauge (e.g. '8 AWG')")
+    """Recommended wire gauge and supporting voltage-drop data (TBS formula)."""
+    recommended_awg: str = Field(..., description="Recommended copper wire gauge (e.g. '10 AWG')")
     wire_distance_ft: float = Field(..., description="One-way wire run used for sizing (ft)")
-    operating_watts: float = Field(..., description="Pump operating power used for sizing (W)")
-    system_voltage: float = Field(..., description="Nominal system voltage (V)")
-    operating_current_a: float = Field(..., description="Operating current (A)")
+    operating_watts: float = Field(..., description="System_Power = MIN(array_watts, pump_max_watts) (W)")
+    system_voltage: float = Field(..., description="Vmp_Array = n_panels × panel_vmp × 0.95 (V)")
+    operating_current_a: float = Field(..., description="Amp_Draw = MIN((System_Power/Vmp_Array)×1.05, 12) (A)")
     voltage_drop_v: float = Field(..., description="Calculated round-trip voltage drop (V)")
-    voltage_drop_percent: float = Field(..., description="Voltage drop as % of system voltage")
-    resistance_per_1000ft: float = Field(..., description="NEC resistance of selected wire (Ω/kft)")
+    voltage_drop_percent: float = Field(..., description="Voltage drop as % of Vmp_Array")
+    resistance_per_1000ft: float = Field(..., description="TBS resistance of selected wire (Ω/kft equivalent)")
     note: str = Field(default="", description="Any sizing note or over-limit warning")
+    # TBS-specific fields
+    vmp_array_v: Optional[float] = Field(None, description="Operating array voltage = n_panels × Vmp × 0.95 (V)")
+    system_power_w: Optional[float] = Field(None, description="System power capped at pump max (W)")
+    amp_draw_a: Optional[float] = Field(None, description="Calculated amp draw capped at 12A (A)")
+    max_length_by_gauge: Optional[dict] = Field(None, description="Max wire run per AWG gauge (ft)")
 
 
 class AccessoryItem(BaseModel):
