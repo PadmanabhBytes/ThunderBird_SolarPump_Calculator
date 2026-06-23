@@ -66,7 +66,7 @@ function buildRequestBody(f) {
     pipe_material:            f.pipeMaterial || 'PVC',
     nominal_pipe_diameter_in: noPipe ? 4.0 : pipeDia,
     pipe_length_ft:           noPipe ? 1   : pipeLen,
-    discharge_pressure_psi:   pressurePsi,
+    discharge_pressure_psi:   pressurePsi + (f.systemType === 'floatPressure' ? 15 : 0),
     panel_wattage_w:          num(f.panelWattage, 370),
     solar_coefficient:        1.0,
     float_switch:             f.floatSwitch === true,
