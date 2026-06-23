@@ -118,3 +118,47 @@ function buildRequestBody(f) {
 
   return body
 }
+
+export async function runDualCalculation(formData) {
+  const zoneCoeff  = formData.gpdZoneCoeff || 1.0
+  const desiredGpd = parseFloat(formData.desiredGpd)
+  const derivedGpm = desiredGpd / (6.5 * 60 * 1.1 * zoneCoeff)
+
+  // Category 1: original GPM, no daily demand override
+  const body1 = buildRequestBody({ ...formData, gpdAccepted: true, desiredGpd: '' })
+
+  // Category 2: derived GPM + keep desiredGpd as daily_water_demand_gallons override
+  const body2 = buildRequestBody({ ...formData, requiredFlowGpm: String(derivedGpm) })
+
+  const opts = body => ({
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+
+  const parse = async r => {
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({ detail: 'Unknown error' }))
+      throw new Error(Array.isArray(err.detail)
+        ? err.detail.map(e => typeof e === 'string' ? e : `${e.loc?.slice(-1)[0]}: ${e.msg}`).join(' | ')
+        : err.detail || `HTTP ${r.status}`)
+    }
+    return r.json()
+  }
+
+  const [r1, r2] = await Promise.all([
+    fetch(`${BASE}/calculate`, opts(body1)),
+    fetch(`${BASE}/calculate`, opts(body2)),
+  ])
+
+  const [result1, result2] = await Promise.all([parse(r1), parse(r2)])
+
+  return {
+    mode:        'dual',
+    category1:   result1,
+    category2:   result2,
+    originalGpm: parseFloat(formData.requiredFlowGpm),
+    desiredGpd,
+    derivedGpm:  parseFloat(derivedGpm.toFixed(1)),
+  }
+}

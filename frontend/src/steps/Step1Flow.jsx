@@ -76,6 +76,19 @@ export default function Step1Flow({ data, onChange }) {
     ? Math.round(gpm * 6.5 * 60 * 1.1 * (data.gpdZoneCoeff || 1.0))
     : null
 
+  const empty = v => v === '' || v === undefined || v === null
+  const estimatedTdh = (
+    data.staticWaterLevel &&
+    !empty(data.drawdown) &&
+    !empty(data.elevationGain) &&
+    !empty(data.pressurePsi)
+  ) ? (
+    parseFloat(data.staticWaterLevel) +
+    parseFloat(data.drawdown) +
+    parseFloat(data.elevationGain) +
+    parseFloat(data.pressurePsi) * 2.31
+  ).toFixed(1) : null
+
   return (
     <div className="step-section">
       <h2 className="step-title">Location & Production</h2>
@@ -319,12 +332,20 @@ export default function Step1Flow({ data, onChange }) {
             </div>
           </div>
 
-          {data.staticWaterLevel && data.drawdown && (
-            <div className="calc-preview">
-              <span>Pumping Level:</span>
-              <strong>{(parseFloat(data.staticWaterLevel) + parseFloat(data.drawdown)).toFixed(0)} ft</strong>
-            </div>
-          )}
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            {data.staticWaterLevel && data.drawdown && (
+              <div className="calc-preview">
+                <span>Pumping Level:</span>
+                <strong>{(parseFloat(data.staticWaterLevel) + parseFloat(data.drawdown)).toFixed(0)} ft</strong>
+              </div>
+            )}
+            {estimatedTdh !== null && (
+              <div className="calc-preview" style={{ background: '#FFF3CD', borderColor: '#C9960C', fontSize: '0.9375rem' }}>
+                <span>Estimated TDH (excl. friction):</span>
+                <strong>{estimatedTdh} ft</strong>
+              </div>
+            )}
+          </div>
         </>
       )}
 

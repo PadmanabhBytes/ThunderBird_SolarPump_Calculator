@@ -56,12 +56,17 @@ export default function ResultsPage({ result, formData, onReset, onEdit }) {
   const [showTdh, setShowTdh]             = useState(false)
   const pdfRef = useRef(null)
 
-  const tier       = result.recommendations?.[activeTier]
+  const isDual = result.mode === 'dual'
+  const [activeCategory, setActiveCategory] = useState('category1')
+  const activeResult = isDual ? result[activeCategory] : result
+
+  const tier       = activeResult.recommendations?.[activeTier]
   const pump       = tier?.pump
   const panels     = tier?.solar_panels
   const accessories = pump ? getAccessories(pump.pump_id, panels, {
     ownPanels:        formData.ownPanels !== false,
     ownRacking:       formData.ownRacking === true,
+    use2_5Racking:    formData.use2_5Racking === true,
     dryRunConcern:    formData.dryRunConcern === 'yes',
     panelWattage:     parseFloat(formData.panelWattage) || 370,
     floatSwitch:      formData.floatSwitch === true,
@@ -75,17 +80,19 @@ export default function ResultsPage({ result, formData, onReset, onEdit }) {
   const tbsItems      = accessories.filter(a => a.category === 'tbs')
   const customerItems = accessories.filter(a => a.category === 'customer')
 
-  const tdh        = result.head_breakdown?.total_dynamic_head_ft
+  const tdh        = activeResult.head_breakdown?.total_dynamic_head_ft
   const tdhStr     = tdh != null ? tdh.toFixed(1) : null
-  const gpm        = formData.requiredFlowGpm
-  const gpd        = result.daily_water_demand_gallons
-  const frictionFt = result.head_breakdown?.friction_loss_ft
-  const pressureHd = result.head_breakdown?.pressure_head_ft
+  const gpm        = isDual && activeCategory === 'category2'
+    ? String(result.derivedGpm)
+    : formData.requiredFlowGpm
+  const gpd        = activeResult.daily_water_demand_gallons
+  const frictionFt = activeResult.head_breakdown?.friction_loss_ft
+  const pressureHd = activeResult.head_breakdown?.pressure_head_ft
   const pumpingLvl = formData.staticWaterLevel && formData.drawdown
     ? parseFloat(formData.staticWaterLevel) + parseFloat(formData.drawdown)
     : null
-  const wireRes    = result.wire_sizing
-  const warnings   = result.warnings || []
+  const wireRes    = activeResult.wire_sizing
+  const warnings   = activeResult.warnings || []
   const opWatts    = tier?.operating_wattage_w
   const panelWatt  = parseFloat(formData.panelWattage) || 400
 
@@ -94,8 +101,8 @@ export default function ResultsPage({ result, formData, onReset, onEdit }) {
 
   const peakFlow   = tier?.achievable_gpm ?? pump?.max_flow_gpm
   // Use zone-adjusted GPD from backend (GPM × 6.5 × 60 × 1.1 × solar_zone_coeff)
-  const dailyOut   = result.daily_water_demand_gallons
-    ? Math.round(result.daily_water_demand_gallons)
+  const dailyOut   = activeResult.daily_water_demand_gallons
+    ? Math.round(activeResult.daily_water_demand_gallons)
     : (peakFlow != null ? Math.round(peakFlow * 6.5 * 60 * 1.1) : null)
 
   // Solar system voltages
@@ -137,10 +144,26 @@ export default function ResultsPage({ result, formData, onReset, onEdit }) {
         </div>
       )}
 
+      {/* Dual category tabs */}
+      {isDual && (
+        <div className="dual-category-tabs">
+          <button
+            className={`dual-tab ${activeCategory === 'category1' ? 'active' : ''}`}
+            onClick={() => setActiveCategory('category1')}>
+            Category 1 — Optimized for {result.originalGpm} GPM
+          </button>
+          <button
+            className={`dual-tab ${activeCategory === 'category2' ? 'active' : ''}`}
+            onClick={() => setActiveCategory('category2')}>
+            Category 2 — Optimized for {result.desiredGpd?.toLocaleString()} GPD
+          </button>
+        </div>
+      )}
+
       {/* Tier tabs */}
       <div className="tier-tabs">
         {Object.keys(TIER_LABELS).map(t => (
-          result.recommendations?.[t] && (
+          activeResult.recommendations?.[t] && (
             <button key={t}
               className={`tier-tab ${activeTier === t ? 'active' : ''} color-${TIER_COLORS[t]}`}
               onClick={() => setActiveTier(t)}>
@@ -256,7 +279,7 @@ export default function ResultsPage({ result, formData, onReset, onEdit }) {
           <StatRow label="Elevation Gain"      value={formData.elevationGain ? `${formData.elevationGain} ft` : '0 ft'} />
           <StatRow label="Friction Loss"
             value={frictionFt != null
-              ? `${frictionFt.toFixed(2)} ft (${formData.pipeDiameter}" ${formData.pipeMaterial} × ${formData.pipeLength} ft @ ${result.head_breakdown?.friction_flow_gpm ?? formData.requiredFlowGpm} GPM)`
+              ? `${frictionFt.toFixed(2)} ft (${formData.pipeDiameter}" ${formData.pipeMaterial} × ${formData.pipeLength} ft @ ${activeResult.head_breakdown?.friction_flow_gpm ?? gpm} GPM)`
               : '—'} />
           <StatRow label="Pressure Head"      value={pressureHd != null ? `${pressureHd.toFixed(2)} ft` : '0 ft'} />
           <StatRow label="Total TDH"          value={tdhStr ? `${tdhStr} ft` : '—'} highlight />

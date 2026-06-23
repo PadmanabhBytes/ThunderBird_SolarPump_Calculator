@@ -21,6 +21,38 @@
   color: #78350F;
 }
 
+/* ── Dual category tabs ── */
+.dual-category-tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.dual-tab {
+  padding: 0.625rem 1.5rem;
+  border-radius: 10px;
+  border: 2px solid var(--border);
+  background: transparent;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  flex: 1;
+  text-align: center;
+}
+
+.dual-tab.active {
+  background: #EFF6FF;
+  border-color: #3B82F6;
+  color: #1D4ED8;
+}
+
+.dual-tab:not(.active):hover {
+  border-color: var(--text-muted);
+  color: var(--text);
+}
+
 /* ── Tier tabs ── */
 .tier-tabs {
   display: flex;

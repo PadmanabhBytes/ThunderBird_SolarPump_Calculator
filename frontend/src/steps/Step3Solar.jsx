@@ -89,6 +89,20 @@ export default function Step3Solar({ data, onChange }) {
           Default panel: <strong>370W · Voc 48V · Vmp 40V · 80" × 40" × 1.5"</strong> — Thunderbird stock panel (SKU 116-1038)
         </div>
       )}
+
+      {/* ── Racking Preference ───────────────────────────────────────────────── */}
+      <h3 className="subsection-title" style={{ marginTop: '1.25rem' }}>e) Racking Preference</h3>
+      <div className="field-row">
+        <label className="checkbox-label">
+          <input type="checkbox"
+            checked={data.use2_5Racking === true}
+            onChange={e => set('use2_5Racking', e.target.checked)} />
+          Customer prefers 2.5" pipe racking (TOPM-2.5IN series)
+        </label>
+        <span className="hint">
+          2.5" racking is available for 1–2 panels (large panels) or 1–3 panels (panels ≤ 35" wide). Larger arrays use 4" nominal racking automatically.
+        </span>
+      </div>
     </div>
   )
 }

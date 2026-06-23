@@ -3,7 +3,7 @@ import Step1Flow    from './steps/Step1Flow'
 import Step2Well    from './steps/Step2Well'
 import Step3Solar   from './steps/Step3Solar'
 import Step4Controls from './steps/Step4Controls'
-import { runCalculation } from './api/calculator'
+import { runCalculation, runDualCalculation } from './api/calculator'
 import './CalculatorForm.css'
 
 const STEPS = [
@@ -81,7 +81,9 @@ export default function CalculatorForm({ onResults, initialData }) {
     setError(null)
     setLoading(true)
     try {
-      const result = await runCalculation(data)
+      const result = (data.gpdAccepted === false && data.desiredGpd)
+        ? await runDualCalculation(data)
+        : await runCalculation(data)
       onResults(result, data)
     } catch (e) {
       setError(e.message)
