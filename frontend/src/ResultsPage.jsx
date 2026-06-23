@@ -52,6 +52,7 @@ function buildWhyItems(pump, tier, tdh, gpm, panels, formData) {
 export default function ResultsPage({ result, formData, onReset, onEdit }) {
   const [activeTier, setActiveTier]       = useState('precise')
   const [showEquipment, setShowEquipment] = useState(true)
+  const [showRacking, setShowRacking]     = useState(true)
   const [showWire, setShowWire]           = useState(false)
   const [showTdh, setShowTdh]             = useState(false)
   const pdfRef = useRef(null)
@@ -77,8 +78,22 @@ export default function ResultsPage({ result, formData, onReset, onEdit }) {
       : null,
     staticWaterLevel: parseFloat(formData.staticWaterLevel) || 0,
   }) : []
-  const tbsItems      = accessories.filter(a => a.category === 'tbs')
-  const customerItems = accessories.filter(a => a.category === 'customer')
+  const tbsItems      = accessories.filter(a => a.category === 'tbs' && !a.isRacking)
+  const customerItems = accessories.filter(a => a.category === 'customer' && !a.isRacking)
+  const tbsRacking    = accessories.filter(a => a.isRacking && a.category === 'tbs')
+  const custRacking   = accessories.filter(a => a.isRacking && a.category === 'customer')
+
+  // Racking summary line for card stat row + collapsible subtitle
+  const rackSummary = tbsRacking.length > 0
+    ? tbsRacking.map(r => `(${r.qty}×) ${r.sku}`).join(' + ')
+    : null
+
+  // Matrix selection context for display
+  const panelWidthIn   = formData.panelW ? parseFloat(formData.panelW) : (formData.ownPanels === false ? 40 : null)
+  const panelExceeds35 = panelWidthIn != null ? panelWidthIn > 35 : true
+  const rackMatrixLabel = formData.use2_5Racking
+    ? (panelExceeds35 ? 'Matrix 1 — 2.5" preferred, panel > 35"' : 'Matrix 2 — 2.5" preferred, panel ≤ 35"')
+    : (panelExceeds35 ? 'Matrix 3 — 4" standard, panel > 35"'   : 'Matrix 4 — 4" standard, panel ≤ 35"')
 
   const tdh        = activeResult.head_breakdown?.total_dynamic_head_ft
   const tdhStr     = tdh != null ? tdh.toFixed(1) : null
@@ -241,6 +256,7 @@ export default function ResultsPage({ result, formData, onReset, onEdit }) {
                 {sysVoc != null && <StatRow label="Sys Voc (@STC)"  value={`${sysVoc} Vdc`} />}
                 {sysVmp != null && <StatRow label="Sys Vmp (@STC)"  value={`${sysVmp} Vdc`} />}
                 {panels != null && <StatRow label="Connections"      value={`1x series string — ${panels} panels`} />}
+                {rackSummary    && <StatRow label="Solar Racking"    value={rackSummary} highlight />}
               </dl>
 
               {headMarginFt != null && headMarginFt > 0 && (
@@ -295,6 +311,39 @@ export default function ResultsPage({ result, formData, onReset, onEdit }) {
             {dailyOut != null && <li>{dailyOut.toLocaleString()} GPD</li>}
           </ul>
         </div>
+      )}
+
+      {/* ── Solar Racking Recommendation ─────────────────────────────────────── */}
+      {tbsRacking.length > 0 && (
+        <Collapsible
+          open={showRacking}
+          onToggle={() => setShowRacking(v => !v)}
+          title="Solar Racking Recommendation"
+          subtitle={rackSummary}>
+          <div className="racking-matrix-info">
+            <div className="racking-matrix-badge">{rackMatrixLabel}</div>
+            <dl className="stat-list inline" style={{ marginTop: '0.75rem' }}>
+              <StatRow label="Panel Count"      value={panels != null ? `${panels}` : '—'} />
+              <StatRow label="Panel Width"      value={panelWidthIn != null ? `${panelWidthIn}"` : 'Not entered (assumed > 35")'} />
+              <StatRow label={'Exceeds 35"'}     value={panelExceeds35 ? 'Yes' : 'No'} />
+              <StatRow label={'2.5" Preference'} value={formData.use2_5Racking ? 'Yes' : 'No'} />
+            </dl>
+          </div>
+
+          <div className="acc-section-header" style={{ marginTop: '1rem' }}>TBS Rack Kits</div>
+          <div className="accessories-list" style={{ marginTop: '0.5rem' }}>
+            {tbsRacking.map((r, i) => <AccessoryCard key={r.sku || i} item={r} />)}
+          </div>
+
+          {custRacking.length > 0 && (
+            <>
+              <div className="acc-section-header customer" style={{ marginTop: '0.75rem' }}>Customer-Provided Materials</div>
+              <div className="accessories-list" style={{ marginTop: '0.5rem' }}>
+                {custRacking.map((r, i) => <AccessoryCard key={i} item={r} />)}
+              </div>
+            </>
+          )}
+        </Collapsible>
       )}
 
       {/* ── 6. Wire Sizing — collapsible with inline subtitle ─────────────────── */}

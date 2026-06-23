@@ -150,7 +150,7 @@ export function getAccessories(pumpId, panelCount, opts = {}) {
     const rackItems      = rackSkuLookup(panelCount, use2_5Racking, panelExceeds35)
 
     rackItems.forEach(r =>
-      tbs.push({ sku: r.sku, qty: r.qty, description: r.desc, inStock: true, category: 'tbs' })
+      tbs.push({ sku: r.sku, qty: r.qty, description: r.desc, inStock: true, category: 'tbs', isRacking: true })
     )
 
     // ── Customer Provided: pipe, concrete, mounting ──────────────────────────
@@ -160,17 +160,17 @@ export function getAccessories(pumpId, panelCount, opts = {}) {
     customer.push({
       sku: null, qty: 1,
       description: `${pipeFt}' ${pipeSpec} Schedule 40 Pipe for Solar Racking`,
-      category: 'customer',
+      category: 'customer', isRacking: true,
     })
     customer.push({
       sku: null, qty: 1,
       description: 'Concrete for Setting Groundposts',
-      category: 'customer',
+      category: 'customer', isRacking: true,
     })
     customer.push({
       sku: null, qty: 1,
       description: 'Mounting Channel for TBS-4ACM and 300-1002 - DC Disconnect',
-      category: 'customer',
+      category: 'customer', isRacking: false,
     })
   }
 

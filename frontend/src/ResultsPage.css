@@ -470,6 +470,26 @@
   vertical-align: middle;
 }
 
+/* ── Racking recommendation section ── */
+.racking-matrix-info {
+  background: #F8FAFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  padding: 0.875rem 1rem;
+}
+
+.racking-matrix-badge {
+  display: inline-block;
+  background: #1E3A5F;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
 .wire-warning {
   margin-top: 1rem;
   background: #FEF2F2;
