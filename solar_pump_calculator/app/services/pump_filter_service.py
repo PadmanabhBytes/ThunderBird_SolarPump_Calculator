@@ -43,6 +43,14 @@ class FilterResult:
     hard_stop: bool = False       # True when casing < 3.5" → no pumps can be installed
 
 
+# Recovery rate thresholds per TBS pump category (Section 10.7 of client requirements)
+_RECOVERY_THRESHOLD = {
+    "A": lambda gpm, rec: gpm <= rec * 2.4,   # External Drive
+    "B": lambda gpm, rec: gpm <= rec + 2.5,   # Internal Drive (stacked impeller)
+    "C": lambda gpm, rec: gpm <= rec,          # Helical Rotor
+}
+
+
 class PumpFilterService:
     """
     Applies compatibility pre-filters to the full pump catalog.
@@ -57,6 +65,8 @@ class PumpFilterService:
         generator_backup_required: bool = False,
         poor_water_quality: bool = False,
         region_restricts_helical: bool = False,
+        recovery_rate_gpm: Optional[float] = None,
+        operating_gpm: Optional[float] = None,
     ) -> FilterResult:
         """
         Apply all compatibility rules and return the surviving pump list.
@@ -149,6 +159,13 @@ class PumpFilterService:
             filtered, dc_reasons = self._apply_generator_filter(filtered)
             reasons.extend(dc_reasons)
 
+        # ── Rule 5: recovery rate → per-category threshold filter ────────────
+        if recovery_rate_gpm is not None and operating_gpm is not None:
+            filtered, rec_reasons = self._apply_recovery_filter(
+                filtered, operating_gpm, recovery_rate_gpm
+            )
+            reasons.extend(rec_reasons)
+
         excluded_count = original_count - len(filtered)
         logger.info(
             "PumpFilterService: %d → %d pumps after pre-filtering (%d excluded).",
@@ -195,3 +212,54 @@ class PumpFilterService:
             logger.info("Generator filter: removed %d DC-only pump(s).", removed)
 
         return ac_compatible, reasons
+
+    @staticmethod
+    def _apply_recovery_filter(
+        pumps: List[Pump],
+        operating_gpm: float,
+        recovery_rate_gpm: float,
+    ) -> Tuple[List[Pump], List[str]]:
+        """
+        Exclude pumps whose operating GPM exceeds the per-category recovery threshold.
+
+        Category A (External Drive):  operating_gpm ≤ recovery × 2.4
+        Category B (Internal Drive):  operating_gpm ≤ recovery + 2.5
+        Category C (Helical Rotor):   operating_gpm ≤ recovery
+
+        Pumps without a known category are always kept.
+        If every pump fails the filter, all are retained with a warning
+        (same relaxation pattern as the generator filter).
+        """
+        reasons: List[str] = []
+        passing = [
+            p for p in pumps
+            if p.pump_category is None
+            or p.pump_category not in _RECOVERY_THRESHOLD
+            or _RECOVERY_THRESHOLD[p.pump_category](operating_gpm, recovery_rate_gpm)
+        ]
+
+        if not passing and pumps:
+            reasons.append(
+                f"Recovery rate filter relaxed — no pumps pass the per-category "
+                f"threshold at {operating_gpm:.1f} GPM / {recovery_rate_gpm:.1f} GPM recovery. "
+                "Verify well recovery characteristics before installation."
+            )
+            logger.warning(
+                "Recovery filter relaxed — all %d pump(s) exceeded threshold; retaining all.",
+                len(pumps),
+            )
+            return pumps, reasons
+
+        removed = len(pumps) - len(passing)
+        if removed:
+            reasons.append(
+                f"Excluded {removed} pump(s) — operating GPM ({operating_gpm:.1f}) "
+                f"exceeds the per-category recovery threshold "
+                f"(well recovery {recovery_rate_gpm:.1f} GPM)."
+            )
+            logger.info(
+                "Recovery filter: removed %d pump(s) at %.1f GPM / %.1f GPM recovery.",
+                removed, operating_gpm, recovery_rate_gpm,
+            )
+
+        return passing, reasons

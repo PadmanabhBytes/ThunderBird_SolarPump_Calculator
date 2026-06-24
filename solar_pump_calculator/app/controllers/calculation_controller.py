@@ -206,13 +206,21 @@ async def _run_calculation(
         panel_wattage_w=request.panel_wattage_w,
     )
 
-    # ── 4a. Pump pre-filtering (casing / water quality / generator) ────────────
+    # ── 4a. Pump pre-filtering (casing / water quality / generator / recovery) ──
     all_pumps   = pump_eval_service._repo.get_all_pumps()
+    # Recovery filter only when rate is known (unknown rate = no filter)
+    recovery_for_filter = (
+        request.recovery_rate_gpm
+        if not request.well_recovery_unknown and request.recovery_rate_gpm is not None
+        else None
+    )
     filter_result = pump_filter_service.filter_pumps(
         pumps=all_pumps,
         well_casing_diameter_in=request.well_casing_diameter_in,
         generator_backup_required=is_ac_backup,
         poor_water_quality=request.poor_water_quality,
+        recovery_rate_gpm=recovery_for_filter,
+        operating_gpm=request.required_flow_gpm,
     )
     warnings.extend(filter_result.reasons)
 
@@ -287,7 +295,6 @@ async def _run_calculation(
 
     # ── Well recovery rate warnings ────────────────────────────────────────────
     if request.well_recovery_unknown:
-        # Only warn / apply filters when customer expressed dry-well concern (or concern unknown)
         dry_concern = request.well_recovery_dry_concern
         if dry_concern is True or dry_concern is None:
             warnings.append(
@@ -295,14 +302,36 @@ async def _run_calculation(
                 "Recommend installing dry-run protection (dry well sensor) to prevent "
                 "pump damage if the well runs dry."
             )
-        # No warning when dry_concern is explicitly False (unknown rate, no concern)
     elif request.recovery_rate_gpm is not None:
-        if request.recovery_rate_gpm < request.required_flow_gpm:
-            warnings.append(
-                f"Over-pumping risk: required flow ({request.required_flow_gpm:.1f} GPM) "
-                f"exceeds well recovery rate ({request.recovery_rate_gpm:.1f} GPM). "
-                "Install dry-run protection (dry well sensor) to prevent pump damage."
-            )
+        # Category-specific warning text (Section 8 of client requirements)
+        # Fires whenever pump operating GPM > recovery rate (regardless of filter result)
+        if request.required_flow_gpm > request.recovery_rate_gpm:
+            selected = recommendations.precise
+            cat = selected.pump.pump_category if selected else None
+            if cat == "A":
+                warnings.append(
+                    "Pump output exceeds the reported well recovery rate. "
+                    "Variable speed operation may allow successful operation, however "
+                    "storage capacity and well recovery characteristics should be "
+                    "reviewed before installation."
+                )
+            elif cat == "B":
+                warnings.append(
+                    "Pump output exceeds the reported well recovery rate. "
+                    "This system may require storage capacity, timer controls, or "
+                    "additional well recovery evaluation."
+                )
+            elif cat == "C":
+                warnings.append(
+                    "Pump output exceeds the reported well recovery rate. "
+                    "Continuous operation may result in the well being pumped down."
+                )
+            else:
+                warnings.append(
+                    f"Over-pumping risk: required flow ({request.required_flow_gpm:.1f} GPM) "
+                    f"exceeds well recovery rate ({request.recovery_rate_gpm:.1f} GPM). "
+                    "Install dry-run protection (dry well sensor) to prevent pump damage."
+                )
         elif request.recovery_rate_gpm < request.required_flow_gpm * 1.2:
             warnings.append(
                 f"Well recovery rate ({request.recovery_rate_gpm:.1f} GPM) is close to "
@@ -358,6 +387,16 @@ async def _run_calculation(
                 )
                 if ws.note:
                     warnings.append(f"Wire sizing: {ws.note}")
+
+                # ── Wire gauge feasibility filter (Section 10.6) ────────────
+                # 8 AWG on a short run (<300 ft) signals an oversized conductor;
+                # spec excludes such systems. With a single pump we warn instead.
+                if ws.recommended_awg == "8 AWG" and request.wire_distance_ft < 300:
+                    warnings.append(
+                        "Wire sizing requires 8 AWG for a run under 300 ft. "
+                        "This combination is outside normal design parameters — "
+                        "verify panel count, wire run, and Vmp before proceeding."
+                    )
         except Exception as exc:
             warnings.append(f"Wire sizing calculation skipped: {exc}")
 

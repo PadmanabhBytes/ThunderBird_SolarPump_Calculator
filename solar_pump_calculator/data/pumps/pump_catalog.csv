@@ -1,4 +1,4 @@
-pump_id,brand,model,type,min_flow_gpm,max_flow_gpm,min_head_ft,max_head_ft,rated_power_w,voltage_v,efficiency_percent,price_usd,description,voltage_class,requires_inverter,mppt_compatible,rated_flow_gpm,max_watts
+pump_id,brand,model,type,min_flow_gpm,max_flow_gpm,min_head_ft,max_head_ft,rated_power_w,voltage_v,efficiency_percent,price_usd,description,voltage_class,requires_inverter,mppt_compatible,rated_flow_gpm,max_watts,pump_category
 P001,Grundfos,SQFlex 0.6-2,submersible,0.0,9.5,16.4,196.9,150,24-300,40,850,Small solar submersible — boreholes up to 197 ft
 P002,Grundfos,SQFlex 2.5-2,submersible,0.0,39.6,16.4,393.7,300,24-300,45,1250,Mid-range solar submersible — up to 394 ft head
 P003,Grundfos,SQFlex 5A-6,submersible,0.0,79.3,16.4,262.5,550,24-300,48,1850,High-flow solar submersible — 262 ft max head
@@ -19,4 +19,4 @@ P017,DAB,DIVERTRON 1200,submersible,0.0,47.6,16.4,229.7,1200,220-240,56,1350,Eur
 P018,Pedrollo,4SR 2/14,submersible,0.0,31.7,65.6,393.7,750,220-240,53,1100,Italian quality — high head capability
 P019,Grundfos,CM 3-5,surface,0.0,79.3,0.0,131.2,370,220-240,55,780,Surface centrifugal — AC/solar hybrid
 P020,Generic Solar,SS-100W-60M,submersible,0.0,26.4,16.4,196.9,100,24-48,38,350,Budget generic solar submersible
-15TBS-4C-AC,Thunderbird,15TBS-4C,submersible,0.0,30.0,0.0,600.0,2800,220,60,1000,Test Pump,ac,1,1,15.0,3000
+15TBS-4C-AC,Thunderbird,15TBS-4C,submersible,0.0,30.0,0.0,600.0,2800,220,60,1000,TBS 15 GPM ACDC Solar Pump,ac,1,1,15.0,3000,A

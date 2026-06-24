@@ -154,6 +154,15 @@ class Pump(BaseModel):
         description="Maximum input power cap for TBS wire sizing formula (W). Caps System_Power = MIN(array_watts, max_watts)."
     )
 
+    # ── System category (TBS prioritization) ─────────────────────────────────
+    pump_category: Optional[str] = Field(
+        None,
+        description=(
+            "TBS system category: A=Stacked Impeller + External Drive (AC/DC), "
+            "B=Stacked Impeller + Internal Drive, C=Helical Rotor."
+        ),
+    )
+
     # ── Commercial ────────────────────────────────────────────────────────────
     price_usd:   Optional[float] = Field(None, ge=0, description="Indicative price (USD)")
     description: Optional[str]   = Field(None,        description="Free-text notes")
