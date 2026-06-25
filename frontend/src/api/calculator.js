@@ -76,6 +76,7 @@ function buildRequestBody(f) {
     poor_water_quality:       f.waterQuality === 'poor',
     operating_window:         f.operatingWindow || 'year_round',
     tbs_racking_kit:          f.tbsRackingKit !== false,
+    panel_width_in:           f.ownPanels !== false ? (parseFloat(f.panelW) || null) : 40.0,
   }
 
   // Daily demand: use desired GPD when user rejected the calculated value

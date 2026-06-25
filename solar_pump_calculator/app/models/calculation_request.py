@@ -251,6 +251,15 @@ class CalculationRequest(BaseModel):
             "racking matrix used in pump category prioritization."
         )
     )
+    panel_width_in: Optional[float] = Field(
+        default=40.0, gt=0,
+        description=(
+            "Panel width (inches). Determines racking matrix category: "
+            "> 35\" uses crossbeam configuration for wide panels; "
+            "≤ 35\" uses narrow-panel configuration. "
+            "TBS stock panel (116-1038) defaults to 40\"."
+        )
+    )
 
     @model_validator(mode="after")
     def dynamic_level_must_exceed_static(self) -> "CalculationRequest":

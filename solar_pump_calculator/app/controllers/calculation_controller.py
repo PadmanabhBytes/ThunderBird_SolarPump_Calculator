@@ -443,6 +443,8 @@ async def _run_calculation(
             else solar_sizing.final_panels
         )
         _posts = 1 if _rk_panels <= 6 else 2 if _rk_panels <= 8 else 3 if _rk_panels <= 12 else 4
+        _pw = request.panel_width_in or 40.0
+        _matrix = "wide-panel (> 35\")" if _pw > 35 else "narrow-panel (≤ 35\")"
         accessories.append(AccessoryItem(
             sku=None,
             name=(
@@ -451,8 +453,9 @@ async def _run_calculation(
             ),
             category="TBS",
             reason=(
-                f"TBS racking kit for {_rk_panels} panels using 2.5\" Sch 40 pipe "
-                f"design ({_posts} ground post{'s' if _posts > 1 else ''})."
+                f"TBS racking kit for {_rk_panels} panels using 2.5\" Sch 40 pipe design "
+                f"({_posts} ground post{'s' if _posts > 1 else ''}, {_matrix} crossbeam configuration, "
+                f"panel width {_pw:.1f}\")."
             ),
         ))
 

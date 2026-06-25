@@ -1,14 +1,40 @@
 import './Steps.css'
 
-const DEFAULT_PANEL = { wattage: '370', voc: '48', vmp: '40' }
+const DEFAULT_PANEL = { wattage: '370', voc: '48', vmp: '40', width: '40' }
+const TBS_DEFAULT_WIDTH = 40  // TBS stock panel 116-1038: 80" × 40" × 1.5"
+
+function WidthBadge({ widthStr }) {
+  const w = parseFloat(widthStr)
+  if (isNaN(w) || w <= 0) return null
+  const over = w > 35
+  return (
+    <span style={{
+      display: 'inline-block',
+      marginLeft: '0.5rem',
+      padding: '0.1rem 0.45rem',
+      borderRadius: '4px',
+      fontSize: '0.75rem',
+      fontWeight: 600,
+      background: over ? '#EFF6FF' : '#F0FDF4',
+      color: over ? '#1D4ED8' : '#15803D',
+      border: `1px solid ${over ? '#BFDBFE' : '#BBF7D0'}`,
+    }}>
+      {over ? '> 35" matrix' : '≤ 35" matrix'}
+    </span>
+  )
+}
 
 export default function Step3Solar({ data, onChange }) {
   const set = (k, v) => onChange({ ...data, [k]: v })
   const ownPanels = data.ownPanels !== false
 
+  const displayWidth = ownPanels
+    ? (data.panelW || '')
+    : String(TBS_DEFAULT_WIDTH)
+
   function handleOwnPanels(yes) {
     if (yes) {
-      onChange({ ...data, ownPanels: true, panelWattage: '', panelVocV: '', panelVmpV: '' })
+      onChange({ ...data, ownPanels: true, panelWattage: '', panelVocV: '', panelVmpV: '', panelW: '' })
     } else {
       onChange({
         ...data,
@@ -16,6 +42,7 @@ export default function Step3Solar({ data, onChange }) {
         panelWattage: DEFAULT_PANEL.wattage,
         panelVocV:    DEFAULT_PANEL.voc,
         panelVmpV:    DEFAULT_PANEL.vmp,
+        panelW:       DEFAULT_PANEL.width,
       })
     }
   }
@@ -73,9 +100,15 @@ export default function Step3Solar({ data, onChange }) {
                 value={data.panelL || ''} onChange={e => set('panelL', e.target.value)} />
             </div>
             <div className="field-group">
-              <label>Width (inches)</label>
+              <label>
+                Width (inches) <span className="req">*</span>
+                <WidthBadge widthStr={data.panelW} />
+              </label>
               <input type="number" min="1" step="0.1" placeholder='e.g. 40"'
                 value={data.panelW || ''} onChange={e => set('panelW', e.target.value)} />
+              <span className="hint">
+                Determines racking matrix: panels &gt; 35" wide use a different crossbeam configuration than narrower panels.
+              </span>
             </div>
             <div className="field-group">
               <label>Thickness (inches)</label>
@@ -87,22 +120,15 @@ export default function Step3Solar({ data, onChange }) {
       ) : (
         <div className="info-box">
           Default panel: <strong>370W · Voc 48V · Vmp 40V · 80" × 40" × 1.5"</strong> — Thunderbird stock panel (SKU 116-1038)
+          <div style={{ marginTop: '0.4rem' }}>
+            Panel width: <strong>40"</strong>
+            <WidthBadge widthStr="40" />
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
+              — crossbeam racking configuration for panels wider than 35"
+            </span>
+          </div>
         </div>
       )}
-
-      {/* ── Racking Preference ───────────────────────────────────────────────── */}
-      <h3 className="subsection-title" style={{ marginTop: '1.25rem' }}>e) Racking Preference</h3>
-      <div className="field-row">
-        <label className="checkbox-label">
-          <input type="checkbox"
-            checked={data.use2_5Racking === true}
-            onChange={e => set('use2_5Racking', e.target.checked)} />
-          Customer prefers 2.5" pipe racking (TOPM-2.5IN series)
-        </label>
-        <span className="hint">
-          2.5" racking is available for 1–2 panels (large panels) or 1–3 panels (panels ≤ 35" wide). Larger arrays use 4" nominal racking automatically.
-        </span>
-      </div>
     </div>
   )
 }
