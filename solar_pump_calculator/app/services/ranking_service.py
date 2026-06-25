@@ -36,7 +36,7 @@ Extensibility
 """
 
 import logging
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 from ..models.pump import PumpType
 from ..models.recommendation import (
@@ -55,6 +55,18 @@ logger = logging.getLogger(__name__)
 
 # STC derating applied to raw GPM for display (matches PDF "7.5% efficiency loss from STC")
 _DISPLAY_STC_LOSS: float = 0.075
+
+# Ground posts per panel count (from TBS racking matrix — each kit = one post)
+# 1–6 panels: single-post rack; 7–8: two posts (split 3+4 or 4+4);
+# 9–12: three posts; 13–16: four posts.
+def _ground_post_count(panel_count: int) -> int:
+    if panel_count <= 6:
+        return 1
+    if panel_count <= 8:
+        return 2
+    if panel_count <= 12:
+        return 3
+    return 4
 
 # Normalisation constants (engineering bounds, not data)
 _EFF_MIN_PCT:     float = 30.0   # lower bound for efficiency normalisation
@@ -329,29 +341,117 @@ class RankingService:
         solar_coefficient:    float,
     ) -> Optional[CategorizedRecommendation]:
         """
-        Select the Precise winner.
+        Select the Precise / TBS-recommended winner.
 
-        Primary dimension: power utilisation ratio — how close operating_watts
-        is to the power the solar array actually delivers at the design point.
-        Solar production at design = panel_count × panel_wattage × (1/solar_coeff).
-        A ratio of 1.0 means perfect match; <1.0 means underutilised array;
-        >1.0 means the array must work above its design point.
-
-        Weights from cfg.weights applied for the full composite.
+        When multiple pump categories (A/B/C) are present, applies the TBS
+        panel-count prioritization rules (Section 10.4-10.5 of client requirements).
+        With a single category (Phase 1), falls back to composite-score selection.
         """
+        if not candidates:
+            return None
+
+        # Multi-category: use TBS A/B/C prioritization rules
+        cats = {c.result.pump.pump_category for c in candidates if c.result.pump.pump_category}
+        known = cats & {'A', 'B', 'C'}
+        if len(known) > 1:
+            winner = self._apply_tbs_prioritization(candidates)
+            if winner is not None:
+                rationale = self._rationale_tbs_prioritized(winner, candidates)
+                return self._build_recommendation(
+                    winner, RecommendationCategory.PRECISE, 1.0, rationale,
+                )
+
+        # Single category (or no category field) — composite score
         scored = [
             (self._composite_score(c, cfg.weights), c)
             for c in candidates
         ]
         scored.sort(key=lambda t: t[0], reverse=True)
-
-        if not scored:
-            return None
-
         score, winner = scored[0]
         rationale = self._rationale_precise(winner, fallback_watts, panel_wattage_w, solar_coefficient)
         return self._build_recommendation(
             winner, RecommendationCategory.PRECISE, score, rationale,
+        )
+
+    def _apply_tbs_prioritization(
+        self,
+        candidates: List[_ScoredCandidate],
+    ) -> Optional[_ScoredCandidate]:
+        """
+        TBS Category A/B/C panel-count prioritization (Sections 10.4–10.5).
+
+        Rules:
+          A vs B  — prefer A only when A_panels == B_panels; any B advantage → B wins
+          A vs C  — prefer A when A_panels ≤ C_panels + 2
+          B vs C  — prefer B when B_panels ≤ C_panels + 1
+          Racking adjustment — if helical needs fewer ground posts than the
+          leading stacked-impeller option, reduce each threshold by 1.
+        """
+        # Best (fewest panels) per category
+        by_cat: Dict[str, _ScoredCandidate] = {}
+        for c in candidates:
+            cat = c.result.pump.pump_category or ''
+            if cat in ('A', 'B', 'C'):
+                if cat not in by_cat or c.solar_panels < by_cat[cat].solar_panels:
+                    by_cat[cat] = c
+
+        if not by_cat:
+            return candidates[0] if candidates else None
+
+        a = by_cat.get('A')
+        b = by_cat.get('B')
+        helical = by_cat.get('C')
+
+        # ── Step 1: A vs B ────────────────────────────────────────────────────
+        # A wins only on tie; any B panel advantage → B wins
+        if a and b:
+            winner = a if a.solar_panels <= b.solar_panels else b
+        else:
+            winner = a or b
+
+        # ── Step 2: Winner vs Helical ─────────────────────────────────────────
+        if helical and winner:
+            winner_posts  = _ground_post_count(winner.solar_panels)
+            helical_posts = _ground_post_count(helical.solar_panels)
+            fewer_posts   = helical_posts < winner_posts
+
+            if winner.result.pump.pump_category == 'A':
+                threshold = 1 if fewer_posts else 2
+            else:  # B
+                threshold = 0 if fewer_posts else 1
+
+            if winner.solar_panels > helical.solar_panels + threshold:
+                winner = helical
+
+            logger.debug(
+                "TBS prioritization: A=%s B=%s C=%s → winner=%s "
+                "(threshold=%d, helical_fewer_posts=%s)",
+                a.solar_panels if a else '—',
+                b.solar_panels if b else '—',
+                helical.solar_panels,
+                winner.result.pump.pump_id,
+                threshold, fewer_posts,
+            )
+        elif helical and not winner:
+            winner = helical
+
+        return winner
+
+    def _rationale_tbs_prioritized(
+        self,
+        winner:     _ScoredCandidate,
+        candidates: List[_ScoredCandidate],
+    ) -> str:
+        cat   = winner.result.pump.pump_category or '?'
+        label = {'A': 'External Drive', 'B': 'Internal Drive', 'C': 'Helical'}.get(cat, cat)
+        cats_present = sorted({
+            c.result.pump.pump_category for c in candidates
+            if c.result.pump.pump_category in ('A', 'B', 'C')
+        })
+        return (
+            f"Selected via TBS Category prioritization (categories evaluated: "
+            f"{', '.join(cats_present)}). "
+            f"Category {cat} ({label}) wins with {winner.solar_panels} panel(s)."
         )
 
     def _select_premium(
