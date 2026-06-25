@@ -435,6 +435,27 @@ async def _run_calculation(
             reason="Required for grid (utility) backup — protects AC/DC equipment from grid surges.",
         ))
 
+    # TBS racking kit (2.5" Sch 40 pipe — ground posts + crossbeams)
+    if request.tbs_racking_kit:
+        _rk_panels = (
+            recommendations.precise.solar_panels
+            if recommendations.precise is not None
+            else solar_sizing.final_panels
+        )
+        _posts = 1 if _rk_panels <= 6 else 2 if _rk_panels <= 8 else 3 if _rk_panels <= 12 else 4
+        accessories.append(AccessoryItem(
+            sku=None,
+            name=(
+                f"TBS Racking Kit — 2.5\" Sch 40 Pipe "
+                f"(ground posts + crossbeams, {_posts} post{'s' if _posts > 1 else ''})"
+            ),
+            category="TBS",
+            reason=(
+                f"TBS racking kit for {_rk_panels} panels using 2.5\" Sch 40 pipe "
+                f"design ({_posts} ground post{'s' if _posts > 1 else ''})."
+            ),
+        ))
+
     # Dry-run protection when recovery is unknown-with-concern or flow exceeds recovery
     needs_dry_run = (
         (request.well_recovery_unknown and request.well_recovery_dry_concern is not False)

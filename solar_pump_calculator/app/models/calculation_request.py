@@ -242,6 +242,15 @@ class CalculationRequest(BaseModel):
             "'winter' = Oct–Mar average."
         )
     )
+    tbs_racking_kit: bool = Field(
+        default=True,
+        description=(
+            "True if the customer wants to use the TBS racking kit design "
+            "(2.5\" Sch 40 pipe for both ground posts and crossbeams). "
+            "Adds racking items to the accessories list and qualifies the "
+            "racking matrix used in pump category prioritization."
+        )
+    )
 
     @model_validator(mode="after")
     def dynamic_level_must_exceed_static(self) -> "CalculationRequest":

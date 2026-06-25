@@ -177,20 +177,21 @@ export default function Step2Well({ data, onChange }) {
       <h3 className="subsection-title">Solar Racking</h3>
 
       <div className="field-row">
-        <span className="field-label-inline">Do you wish to use your own racking solution?</span>
-        <div className="radio-group" style={{ flexDirection: 'row', gap: '1.5rem', marginTop: '0.5rem' }}>
-          <label className="radio-label">
-            <input type="radio" name="ownRacking" value="no"
-              checked={!data.ownRacking} onChange={() => set('ownRacking', false)} />
-            No — include TBS racking in equipment list
-          </label>
-          <label className="radio-label">
-            <input type="radio" name="ownRacking" value="yes"
-              checked={data.ownRacking === true} onChange={() => set('ownRacking', true)} />
-            Yes — I'll provide my own racking
-          </label>
-        </div>
+        <label className="checkbox-label">
+          <input
+            type="checkbox"
+            checked={data.tbsRackingKit !== false}
+            onChange={e => set('tbsRackingKit', e.target.checked)}
+          />
+          If viable, would you like to use our racking kit design around 2.5" schedule 40 pipe
+          (used for both ground post and crossbeam)?
+        </label>
       </div>
+      {data.tbsRackingKit !== false && (
+        <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '0.4rem', paddingLeft: '1.75rem' }}>
+          TBS racking kit will be included in the equipment list. SKU pending confirmation.
+        </p>
+      )}
     </div>
   )
 }
