@@ -151,18 +151,18 @@ async def _run_calculation(
                 "NREL lookup failed — using manual peak sun hours and solar coefficient."
             )
 
-    # When NREL didn't supply a zone coefficient (manual PSH or NREL failure),
-    # derive it from peak_sun_hours treated as a GHI proxy.
-    if solar_coefficient == 1.0 and peak_sun_hours is not None:
-        nrel_solar_zone, solar_coefficient = SolarZoneRegistry.zone_from_ghi(peak_sun_hours)
-        warnings.append(
-            f"Manual PSH {peak_sun_hours:.1f} h/day → "
-            f"Solar Zone {nrel_solar_zone} → array coefficient {solar_coefficient:.2f}×"
-        )
-
+    # Ensure we always have a usable PSH before deriving zone coefficient
     if peak_sun_hours is None:
         peak_sun_hours = 5.0
         warnings.append("No solar resource available. Defaulting to 5.0 peak sun hours.")
+
+    # Derive zone coefficient from PSH when NREL didn't supply one
+    if solar_coefficient == 1.0:
+        nrel_solar_zone, solar_coefficient = SolarZoneRegistry.zone_from_ghi(peak_sun_hours)
+        warnings.append(
+            f"PSH {peak_sun_hours:.1f} h/day → "
+            f"Solar Zone {nrel_solar_zone} → array coefficient {solar_coefficient:.2f}×"
+        )
 
     # ── 0a. TBS GPD formula (zone-adjusted) ──────────────────────────────────
     # GPD = GPM × 6.5 × 60 × 1.1 × TBS_GPD_ZONE_COEFF
@@ -275,6 +275,12 @@ async def _run_calculation(
         )
 
     # ── 5. Rank ────────────────────────────────────────────────────────────────
+    # floatPressure: +15 PSI (34.65 ft) added to TDH for sizing; GPM display
+    # uses production TDH without that pressure head (per spec section 8.iii).
+    _FLOAT_PRESSURE_PSI = 15.0
+    is_float_pressure = request.float_switch and request.pressure_switch
+    production_tdh_ft = max(1.0, tdh_ft - _FLOAT_PRESSURE_PSI * 2.31) if is_float_pressure else tdh_ft
+
     recommendations = ranking_service.rank(
         eval_results=eval_results,
         required_flow_gpm=request.required_flow_gpm,
@@ -287,6 +293,7 @@ async def _run_calculation(
         stc_efficiency_loss=request.stc_efficiency_loss,
         generator_backup_required=is_ac_backup,
         pump_rated_gpm_fallback=request.pump_rated_flow_gpm,
+        production_head_ft=production_tdh_ft,
     )
 
     # ── Demand vs. daily pump runtime check ───────────────────────────────────

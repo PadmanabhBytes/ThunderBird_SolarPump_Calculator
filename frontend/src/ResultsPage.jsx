@@ -67,7 +67,7 @@ export default function ResultsPage({ result, formData, onReset, onEdit }) {
   const accessories = pump ? getAccessories(pump.pump_id, panels, {
     ownPanels:        formData.ownPanels !== false,
     ownRacking:       formData.ownRacking === true,
-    use2_5Racking:    formData.use2_5Racking === true,
+    use2_5Racking:    formData.tbsRackingKit !== false,
     dryRunConcern:    formData.dryRunConcern === 'yes',
     panelWattage:     parseFloat(formData.panelWattage) || 370,
     floatSwitch:      formData.floatSwitch === true,
@@ -91,7 +91,7 @@ export default function ResultsPage({ result, formData, onReset, onEdit }) {
   // Matrix selection context for display
   const panelWidthIn   = formData.panelW ? parseFloat(formData.panelW) : (formData.ownPanels === false ? 40 : null)
   const panelExceeds35 = panelWidthIn != null ? panelWidthIn > 35 : true
-  const rackMatrixLabel = formData.use2_5Racking
+  const rackMatrixLabel = formData.tbsRackingKit !== false
     ? (panelExceeds35 ? 'Matrix 1 — 2.5" preferred, panel > 35"' : 'Matrix 2 — 2.5" preferred, panel ≤ 35"')
     : (panelExceeds35 ? 'Matrix 3 — 4" standard, panel > 35"'   : 'Matrix 4 — 4" standard, panel ≤ 35"')
 

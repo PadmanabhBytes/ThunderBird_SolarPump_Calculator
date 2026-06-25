@@ -134,6 +134,7 @@ class RankingService:
         config:                   Optional[RankingConfig] = None,
         generator_backup_required: bool               = False,
         pump_rated_gpm_fallback:  Optional[float]     = None,
+        production_head_ft:       Optional[float]     = None,
     ) -> RankedRecommendationSet:
         """
         Run the full three-category ranking pipeline.
@@ -188,6 +189,7 @@ class RankingService:
             stc_efficiency_loss=stc_efficiency_loss,
             generator_backup_required=generator_backup_required,
             pump_rated_gpm_fallback=pump_rated_gpm_fallback,
+            production_head_ft=production_head_ft,
         )
 
         # ── Steps 3–4: Score and select per category ───────────────────────
@@ -235,6 +237,7 @@ class RankingService:
         stc_efficiency_loss:      float = 0.075,
         generator_backup_required: bool = False,
         pump_rated_gpm_fallback:  Optional[float] = None,
+        production_head_ft:       Optional[float] = None,
     ) -> List[_ScoredCandidate]:
         """Solar-size each eligible pump; collect into _ScoredCandidate objects.
 
@@ -261,9 +264,22 @@ class RankingService:
                 display_stc_loss = _DISPLAY_STC_LOSS  # 7.5% always
 
                 if n_panels is not None:
-                    op_w           = n_panels * panel_wattage_w
-                    dh_w           = deadhead_watts if deadhead_watts is not None else op_w
-                    achievable_gpm = round(raw_gpm * (1.0 - display_stc_loss), 1) if raw_gpm is not None else None
+                    op_w = n_panels * panel_wattage_w
+                    dh_w = deadhead_watts if deadhead_watts is not None else op_w
+                    # For floatPressure: re-evaluate GPM at production TDH (without +15 PSI)
+                    if (
+                        production_head_ft is not None
+                        and production_head_ft != tdh_ft
+                        and pump_eval_service is not None
+                    ):
+                        curve = pump_eval_service._repo.get_performance_curve(result.pump.pump_id)
+                        prod_raw = (
+                            pump_eval_service.gpm_at_head_and_watts(curve, production_head_ft, op_w)
+                            if curve is not None else raw_gpm
+                        )
+                    else:
+                        prod_raw = raw_gpm
+                    achievable_gpm = round(prod_raw * (1.0 - display_stc_loss), 1) if prod_raw is not None else None
                     candidates.append(_ScoredCandidate(
                         result=result,
                         score=0.0,
