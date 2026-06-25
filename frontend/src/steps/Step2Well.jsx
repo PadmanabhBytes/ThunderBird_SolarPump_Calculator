@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import './Steps.css'
 
 const CASING_SIZES  = ['3.5', '4.0', '4.5', '5.0']
@@ -8,12 +9,51 @@ const WATER_QUALITY = [
   { value: 'poor',    label: 'Poor — heavy solids or iron bacteria (excludes helical rotor pumps)' },
 ]
 
+function BackupPopup({ type, onClose }) {
+  const isGrid = type === 'grid'
+  return (
+    <div className="popup-overlay" onClick={onClose}>
+      <div className="popup-box" onClick={e => e.stopPropagation()}>
+        <button className="popup-close" onClick={onClose}>✕</button>
+        <h3 className="popup-title">{isGrid ? 'Grid Backup' : 'Generator Backup'}</h3>
+        <p className="popup-body">
+          AC/DC TBS Solar Products require <strong>1ph 230VAC power backup</strong> for optimal performance.
+        </p>
+        {isGrid && (
+          <p className="popup-body">
+            An <strong>AC surge protector</strong> is required for grid use — SKU 344-1001 (300VAC AC Surge Protection Device) will be added to your final system selections.
+          </p>
+        )}
+        <button className="btn-primary" style={{ marginTop: '0.75rem' }} onClick={onClose}>
+          Got it
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function Step2Well({ data, onChange }) {
   const set = (k, v) => onChange({ ...data, [k]: v })
   const recoveryUnknown = data.recoveryUnknown === true
 
+  const [backupPopup, setBackupPopup] = useState(null)
+
+  function handleGeneratorToggle(checked) {
+    onChange({ ...data, generatorBackup: checked, gridBackup: checked ? false : data.gridBackup })
+    if (checked) setBackupPopup('generator')
+  }
+
+  function handleGridToggle(checked) {
+    onChange({ ...data, gridBackup: checked, generatorBackup: checked ? false : data.generatorBackup })
+    if (checked) setBackupPopup('grid')
+  }
+
+  const show4inWarning = data.wellCasing === '4.0'
+
   return (
     <div className="step-section">
+      {backupPopup && <BackupPopup type={backupPopup} onClose={() => setBackupPopup(null)} />}
+
       <h2 className="step-title">Well Characteristics</h2>
       <p className="step-subtitle">Well recovery, casing, and water quality.</p>
 
@@ -85,6 +125,37 @@ export default function Step2Well({ data, onChange }) {
           </select>
           <span className="hint">Used to filter out incompatible pump sizes</span>
         </div>
+      </div>
+
+      {show4inWarning && (
+        <div className="info-box" style={{ background: '#FFF7ED', borderColor: '#F97316', marginTop: '0.75rem' }}>
+          <strong>⚠ 4" Casing Notice:</strong> A 4" inner diameter casing is selected with an AC/DC 4" pump option.
+          Ensure the actual inner casing diameter meets minimum clearance requirements for the selected pump before installation.
+        </div>
+      )}
+
+      <div className="divider" />
+
+      {/* ── Generator / Grid Backup ───────────────────────────────────────────── */}
+      <h3 className="subsection-title">Generator / Grid Backup</h3>
+      <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+        Select if this system will have an AC power backup source. Only one may be selected.
+      </p>
+
+      <div className="field-row">
+        <label className="checkbox-label">
+          <input type="checkbox" checked={data.generatorBackup || false}
+            onChange={e => handleGeneratorToggle(e.target.checked)} />
+          Generator backup — excludes DC-only pump designs
+        </label>
+      </div>
+
+      <div className="field-row" style={{ marginTop: '0.5rem' }}>
+        <label className="checkbox-label">
+          <input type="checkbox" checked={data.gridBackup || false}
+            onChange={e => handleGridToggle(e.target.checked)} />
+          Grid (utility) backup — adds AC surge protector SKU 344-1001 to parts list
+        </label>
       </div>
 
       <div className="divider" />

@@ -115,29 +115,6 @@ function DiagramModal({ type, onClose }) {
   )
 }
 
-function BackupPopup({ type, onClose }) {
-  const isGrid = type === 'grid'
-  return (
-    <div className="popup-overlay" onClick={onClose}>
-      <div className="popup-box" onClick={e => e.stopPropagation()}>
-        <button className="popup-close" onClick={onClose}>✕</button>
-        <h3 className="popup-title">{isGrid ? 'Grid Backup' : 'Generator Backup'}</h3>
-        <p className="popup-body">
-          AC/DC TBS Solar Products require <strong>1ph 230VAC power backup</strong> for optimal performance.
-        </p>
-        {isGrid && (
-          <p className="popup-body">
-            An <strong>AC surge protector</strong> is required for grid use — SKU 344-1001 (300VAC AC Surge Protection Device) will be added to your final system selections.
-          </p>
-        )}
-        <button className="btn-primary" style={{ marginTop: '0.75rem' }} onClick={onClose}>
-          Got it
-        </button>
-      </div>
-    </div>
-  )
-}
-
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function Step4Controls({ data, onChange }) {
@@ -149,8 +126,7 @@ export default function Step4Controls({ data, onChange }) {
     data.pressureSwitchRange && !PRESSURE_RANGES.includes(data.pressureSwitchRange)
       ? 'custom' : 'select'
   )
-  const [backupPopup, setBackupPopup]   = useState(null)
-  const [diagramType, setDiagramType]   = useState(null)
+  const [diagramType, setDiagramType] = useState(null)
 
   function handleSystemType(type) {
     onChange({
@@ -166,16 +142,6 @@ export default function Step4Controls({ data, onChange }) {
   function handleRangeMode(mode) {
     setRangeMode(mode)
     set('pressureSwitchRange', '')
-  }
-
-  function handleGeneratorToggle(checked) {
-    onChange({ ...data, generatorBackup: checked, gridBackup: checked ? false : data.gridBackup })
-    if (checked) setBackupPopup('generator')
-  }
-
-  function handleGridToggle(checked) {
-    onChange({ ...data, gridBackup: checked, generatorBackup: checked ? false : data.generatorBackup })
-    if (checked) setBackupPopup('grid')
   }
 
   // ── PSI mismatch warning (pressure / floatPressure only) ──────────────────
@@ -198,8 +164,7 @@ export default function Step4Controls({ data, onChange }) {
 
   return (
     <div className="step-section">
-      {backupPopup  && <BackupPopup  type={backupPopup}  onClose={() => setBackupPopup(null)} />}
-      {diagramType  && <DiagramModal type={diagramType}  onClose={() => setDiagramType(null)} />}
+      {diagramType && <DiagramModal type={diagramType} onClose={() => setDiagramType(null)} />}
 
       <h2 className="step-title">System Controls</h2>
       <p className="step-subtitle">Select your system type, then configure controls and backup power.</p>
@@ -323,30 +288,6 @@ export default function Step4Controls({ data, onChange }) {
           )}
         </div>
       )}
-
-      <div className="divider" />
-
-      {/* ── AC Backup Power ───────────────────────────────────────────────────── */}
-      <h3 className="subsection-title">AC Backup Power</h3>
-      <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
-        Select if this system will have an AC power backup source. Only one may be selected.
-      </p>
-
-      <div className="field-row">
-        <label className="checkbox-label">
-          <input type="checkbox" checked={data.generatorBackup || false}
-            onChange={e => handleGeneratorToggle(e.target.checked)} />
-          Generator backup — excludes DC-only pump designs
-        </label>
-      </div>
-
-      <div className="field-row" style={{ marginTop: '0.5rem' }}>
-        <label className="checkbox-label">
-          <input type="checkbox" checked={data.gridBackup || false}
-            onChange={e => handleGridToggle(e.target.checked)} />
-          Grid (utility) backup — adds AC surge protector SKU 344-1001 to parts list
-        </label>
-      </div>
 
       <div className="divider" />
 
