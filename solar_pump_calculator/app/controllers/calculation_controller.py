@@ -130,13 +130,19 @@ async def _run_calculation(
     nrel_solar_zone: int = 4   # default Zone 4 when NREL is unavailable
 
     if request.latitude is not None and request.longitude is not None:
-        nrel_result = await nrel_service.get_solar_resource(request.latitude, request.longitude)
+        nrel_result = await nrel_service.get_solar_resource(
+            request.latitude, request.longitude, request.operating_window
+        )
         if nrel_result is not None:
             peak_sun_hours    = nrel_result.peak_sun_hours
             solar_coefficient = nrel_result.coefficient
             nrel_solar_zone   = nrel_result.solar_zone
+            season_label = {
+                "summer": "Apr–Sep average",
+                "winter": "Oct–Mar average",
+            }.get(request.operating_window, "annual average")
             warnings.append(
-                f"NREL: GHI={nrel_result.ghi:.2f} kWh/m²/day → "
+                f"NREL: GHI={nrel_result.ghi:.2f} kWh/m²/day ({season_label}) → "
                 f"Solar Zone {nrel_result.solar_zone} → "
                 f"array coefficient {nrel_result.coefficient:.2f}×"
             )

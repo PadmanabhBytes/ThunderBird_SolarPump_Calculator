@@ -74,6 +74,7 @@ function buildRequestBody(f) {
     generator_backup_required: f.generatorBackup === true,
     grid_backup_required:     f.gridBackup === true,
     poor_water_quality:       f.waterQuality === 'poor',
+    operating_window:         f.operatingWindow || 'year_round',
   }
 
   // Daily demand: use desired GPD when user rejected the calculated value

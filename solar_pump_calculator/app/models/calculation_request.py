@@ -232,6 +232,16 @@ class CalculationRequest(BaseModel):
         default=0.04, ge=0.0, le=0.30,
         description="Fractional efficiency loss from STC conditions used for panel COUNT sizing (4%). Achievable GPM display always uses 7.5% via _DISPLAY_STC_LOSS in ranking_service."
     )
+    operating_window: str = Field(
+        default="year_round",
+        pattern="^(year_round|summer|winter)$",
+        description=(
+            "System operating season for solar resource averaging. "
+            "'year_round' = annual average GHI. "
+            "'summer' = Apr–Sep average. "
+            "'winter' = Oct–Mar average."
+        )
+    )
 
     @model_validator(mode="after")
     def dynamic_level_must_exceed_static(self) -> "CalculationRequest":
