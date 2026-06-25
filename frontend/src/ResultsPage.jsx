@@ -326,7 +326,7 @@ export default function ResultsPage({ result, formData, onReset, onEdit }) {
               <StatRow label="Panel Count"      value={panels != null ? `${panels}` : '—'} />
               <StatRow label="Panel Width"      value={panelWidthIn != null ? `${panelWidthIn}"` : 'Not entered (assumed > 35")'} />
               <StatRow label={'Exceeds 35"'}     value={panelExceeds35 ? 'Yes' : 'No'} />
-              <StatRow label={'2.5" Preference'} value={formData.use2_5Racking ? 'Yes' : 'No'} />
+              <StatRow label={'2.5" Preference'} value={formData.tbsRackingKit !== false ? 'Yes' : 'No'} />
             </dl>
           </div>
 
@@ -354,13 +354,24 @@ export default function ResultsPage({ result, formData, onReset, onEdit }) {
           title="Wire Sizing Calculator"
           subtitle={wireSubtitle}>
           <dl className="stat-list inline">
-            <StatRow label="Recommended AWG"   value={wireRes.recommended_awg} highlight />
-            <StatRow label="Voltage Drop"      value={`${wireRes.voltage_drop_percent?.toFixed(1)}%`} />
-            <StatRow label="Wire Resistance"   value={`${wireRes.resistance_per_1000ft} Ω/kft`} />
-            <StatRow label="System Voltage"    value={`${wireRes.system_voltage}V`} />
-            <StatRow label="One-Way Distance"  value={`${wireRes.wire_distance_ft} ft`} />
-            <StatRow label="Operating Current" value={`${wireRes.operating_current_a?.toFixed(2)} A`} />
+            <StatRow label="Recommended AWG"        value={wireRes.recommended_awg} highlight />
+            <StatRow label="Vmp_Array (×0.95)"      value={wireRes.vmp_array_v != null ? `${wireRes.vmp_array_v} V` : `${wireRes.system_voltage} V`} />
+            <StatRow label="System Power"           value={wireRes.system_power_w != null ? `${wireRes.system_power_w} W` : `${wireRes.operating_watts} W`} />
+            <StatRow label="Amp Draw (×1.05, ≤12A)" value={wireRes.amp_draw_a != null ? `${wireRes.amp_draw_a?.toFixed(2)} A` : `${wireRes.operating_current_a?.toFixed(2)} A`} />
+            <StatRow label="Wire Resistance"        value={`${wireRes.resistance_per_1000ft} Ω/kft`} />
+            <StatRow label="Voltage Drop"           value={`${wireRes.voltage_drop_percent?.toFixed(1)}%`} />
+            <StatRow label="One-Way Distance"       value={`${wireRes.wire_distance_ft} ft`} />
           </dl>
+          {wireRes.max_length_by_gauge && Object.keys(wireRes.max_length_by_gauge).length > 0 && (
+            <div style={{ marginTop: '0.75rem' }}>
+              <div className="acc-section-header" style={{ marginBottom: '0.4rem' }}>Max Wire Length by Gauge</div>
+              <dl className="stat-list inline">
+                {Object.entries(wireRes.max_length_by_gauge).map(([awg, len]) => (
+                  <StatRow key={awg} label={awg} value={`${len} ft`} highlight={awg === wireRes.recommended_awg} />
+                ))}
+              </dl>
+            </div>
+          )}
           {wireRes.note && <div className="wire-warning">{wireRes.note}</div>}
         </Collapsible>
       )}
