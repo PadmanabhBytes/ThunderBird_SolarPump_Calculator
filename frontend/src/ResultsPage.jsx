@@ -107,7 +107,9 @@ export default function ResultsPage({ result, formData, onReset, onEdit }) {
     ? parseFloat(formData.staticWaterLevel) + parseFloat(formData.drawdown)
     : null
   const wireRes    = activeResult.wire_sizing
-  const warnings   = activeResult.warnings || []
+  const warnings   = (activeResult.warnings || []).filter(
+    w => !w.startsWith('Solar resource lookup unavailable') && !w.startsWith('NREL lookup failed')
+  )
   const opWatts    = tier?.operating_wattage_w
   const panelWatt  = parseFloat(formData.panelWattage) || 400
 
