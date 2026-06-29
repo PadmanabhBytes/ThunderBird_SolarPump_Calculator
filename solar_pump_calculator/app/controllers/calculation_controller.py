@@ -704,11 +704,12 @@ async def calculate_solar(
 async def get_solar_zone(
     lat: float = Query(..., description="Latitude"),
     lon: float = Query(..., description="Longitude"),
+    window: str = Query(default="year_round", description="year_round | summer | winter"),
     nrel_service: NRELService = Depends(get_nrel_service),
 ):
     _TBS_GPD_ZONE_COEFF = {1: 0.78, 2: 0.85, 3: 0.92, 4: 1.00, 5: 1.08, 6: 1.08}
     try:
-        result = await nrel_service.get_solar_resource(lat, lon)
+        result = await nrel_service.get_solar_resource(lat, lon, window)
         if result:
             zone = result.solar_zone
             return {"solar_zone": zone, "gpd_coeff": _TBS_GPD_ZONE_COEFF.get(zone, 1.00)}

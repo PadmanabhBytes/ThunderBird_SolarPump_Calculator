@@ -24,8 +24,9 @@ export default function Step1Flow({ data, onChange }) {
   }
 
   async function applyZone(lat, lon, base) {
+    const window = base.operatingWindow || 'year_round'
     try {
-      const res = await fetch(`${API_BASE}/solar-zone?lat=${lat}&lon=${lon}`)
+      const res = await fetch(`${API_BASE}/solar-zone?lat=${lat}&lon=${lon}&window=${window}`)
       if (res.ok) {
         const z = await res.json()
         onChange({ ...base, gpdZoneCoeff: z.gpd_coeff, solarZone: z.solar_zone })
@@ -59,8 +60,9 @@ export default function Step1Flow({ data, onChange }) {
     const { latitude: lat, longitude: lon } = data
     if (!lat || !lon) return
     setLookup({ loading: true, error: null })
+    const window = data.operatingWindow || 'year_round'
     try {
-      const res = await fetch(`${API_BASE}/solar-zone?lat=${lat}&lon=${lon}`)
+      const res = await fetch(`${API_BASE}/solar-zone?lat=${lat}&lon=${lon}&window=${window}`)
       if (!res.ok) throw new Error('Solar zone lookup failed')
       const z = await res.json()
       onChange({ ...data, gpdZoneCoeff: z.gpd_coeff, solarZone: z.solar_zone })
@@ -68,6 +70,19 @@ export default function Step1Flow({ data, onChange }) {
     } catch (e) {
       setLookup({ loading: false, error: e.message })
     }
+  }
+
+  async function handleSeasonChange(newWindow) {
+    set('operatingWindow', newWindow)
+    const { latitude: lat, longitude: lon } = data
+    if (!lat || !lon) return
+    try {
+      const res = await fetch(`${API_BASE}/solar-zone?lat=${lat}&lon=${lon}&window=${newWindow}`)
+      if (res.ok) {
+        const z = await res.json()
+        onChange({ ...data, operatingWindow: newWindow, gpdZoneCoeff: z.gpd_coeff, solarZone: z.solar_zone })
+      }
+    } catch (_) {}
   }
 
   const gpm = parseFloat(data.requiredFlowGpm)
@@ -193,7 +208,7 @@ export default function Step1Flow({ data, onChange }) {
       <div className="field-grid">
         <div className="field-group">
           <label>Operating Season</label>
-          <select value={data.operatingWindow || 'year_round'} onChange={e => set('operatingWindow', e.target.value)}>
+          <select value={data.operatingWindow || 'year_round'} onChange={e => handleSeasonChange(e.target.value)}>
             <option value="year_round">Year Round (annual average)</option>
             <option value="summer">Summer Only (Apr – Sep average)</option>
             <option value="winter">Winter Only (Oct – Mar average)</option>
