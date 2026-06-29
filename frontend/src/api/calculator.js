@@ -111,10 +111,16 @@ function buildRequestBody(f) {
   // Panel Voc
   if (f.panelVocV) body.panel_voc_v = parseFloat(f.panelVocV)
 
+  // Zone midpoint PSH — used as backend fallback if NREL fails, so zone shown
+  // in Step 1 matches zone used in the calculation (both from the same lookup).
+  const _ZONE_MIDPOINT = { 1: 1.5, 2: 2.5, 3: 3.5, 4: 4.5, 5: 5.5, 6: 6.5 }
+
   // Location — prefer coords over manual peak_sun_hours
   if (f.latitude && f.longitude) {
     body.latitude  = parseFloat(f.latitude)
     body.longitude = parseFloat(f.longitude)
+    // Pass zone-derived PSH so backend fallback stays consistent with Step 1
+    if (f.solarZone) body.peak_sun_hours = _ZONE_MIDPOINT[f.solarZone] ?? 4.5
   } else {
     body.peak_sun_hours = parseFloat(f.peakSunHours || 5.0)
   }
