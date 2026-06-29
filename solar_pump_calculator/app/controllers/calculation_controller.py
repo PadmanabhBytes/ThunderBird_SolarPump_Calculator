@@ -147,14 +147,19 @@ async def _run_calculation(
                 f"array coefficient {nrel_result.coefficient:.2f}×"
             )
         else:
-            warnings.append(
-                "NREL lookup failed — using manual peak sun hours and solar coefficient."
-            )
+            if peak_sun_hours is None:
+                peak_sun_hours = 5.0
+                warnings.append(
+                    "Solar resource lookup unavailable — defaulting to 5.0 peak sun hours (Solar Zone 5)."
+                )
+            else:
+                warnings.append(
+                    "Solar resource lookup unavailable — using your manually entered peak sun hours."
+                )
 
     # Ensure we always have a usable PSH before deriving zone coefficient
     if peak_sun_hours is None:
         peak_sun_hours = 5.0
-        warnings.append("No solar resource available. Defaulting to 5.0 peak sun hours.")
 
     # Derive zone coefficient from PSH when NREL didn't supply one
     if solar_coefficient == 1.0:
