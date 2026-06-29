@@ -297,7 +297,9 @@ export default function ResultsPage({ result, formData, onReset, onEdit }) {
           <StatRow label="Elevation Gain"      value={formData.elevationGain ? `${formData.elevationGain} ft` : '0 ft'} />
           <StatRow label="Friction Loss"
             value={frictionFt != null
-              ? `${frictionFt.toFixed(2)} ft (${formData.pipeDiameter}" ${formData.pipeMaterial} × ${formData.pipeLength} ft @ ${activeResult.head_breakdown?.friction_flow_gpm ?? gpm} GPM)`
+              ? (formData.hasPipeRun && formData.pipeDiameter && formData.pipeLength
+                  ? `${frictionFt.toFixed(2)} ft (${formData.pipeDiameter}" ${formData.pipeMaterial} × ${formData.pipeLength} ft @ ${activeResult.head_breakdown?.friction_flow_gpm ?? gpm} GPM)`
+                  : `${frictionFt.toFixed(2)} ft`)
               : '—'} />
           <StatRow label="Pressure Head"      value={pressureHd != null ? `${pressureHd.toFixed(2)} ft` : '0 ft'} />
           <StatRow label="Total TDH"          value={tdhStr ? `${tdhStr} ft` : '—'} highlight />
@@ -401,7 +403,9 @@ export default function ResultsPage({ result, formData, onReset, onEdit }) {
           </div>
         ) : (
           <p className="muted-note">
-            No accessory list available for pump <strong>{pump?.pump_id || 'unknown'}</strong>.
+            {pump
+              ? <>No accessories configured for pump <strong>{pump.pump_id}</strong>.</>
+              : 'No pump matched your requirements — adjust well casing, TDH, or flow to see the equipment list.'}
           </p>
         )}
       </Collapsible>
