@@ -94,7 +94,7 @@ const DIAGRAMS = {
         <div className="diag-row"><div className="diag-box dist">Distribution</div></div>
         <div className="diag-desc">
           The mechanical float stops the pump when the holding tank is full. The pressure switch
-          starts the pump on demand. +15 PSI is added to TDH to account for the combined head requirement.
+          starts the pump on demand. A shutoff PSI is recommended to ensure adequate head from the switch to the tank.
         </div>
       </div>
     ),
@@ -141,7 +141,7 @@ export default function Step4Controls({ data, onChange }) {
 
   function handleRangeMode(mode) {
     setRangeMode(mode)
-    set('pressureSwitchRange', '')
+    onChange({ ...data, pressureSwitchRange: '', pressureCutIn: '', pressureCutOut: '' })
   }
 
   // ── PSI mismatch warning (pressure / floatPressure only) ──────────────────
@@ -246,8 +246,31 @@ export default function Step4Controls({ data, onChange }) {
                   {PRESSURE_RANGES.map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
               ) : (
-                <input type="text" placeholder="e.g. 45-65 PSI"
-                  value={data.pressureSwitchRange || ''} onChange={e => set('pressureSwitchRange', e.target.value)} />
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end' }}>
+                  <div className="field-group" style={{ flex: 1, marginBottom: 0 }}>
+                    <label style={{ fontSize: '0.8rem', marginBottom: '0.25rem' }}>Cut-in PSI</label>
+                    <input type="number" min="0" placeholder="e.g. 30"
+                      value={data.pressureCutIn || ''}
+                      onChange={e => {
+                        const cutIn = e.target.value
+                        const cutOut = data.pressureCutOut || ''
+                        onChange({ ...data, pressureCutIn: cutIn,
+                          pressureSwitchRange: cutIn && cutOut ? `${cutIn}/${cutOut} PSI` : '' })
+                      }} />
+                  </div>
+                  <span style={{ paddingBottom: '0.5rem', color: '#6B7280' }}>—</span>
+                  <div className="field-group" style={{ flex: 1, marginBottom: 0 }}>
+                    <label style={{ fontSize: '0.8rem', marginBottom: '0.25rem' }}>Cut-out PSI</label>
+                    <input type="number" min="0" placeholder="e.g. 50"
+                      value={data.pressureCutOut || ''}
+                      onChange={e => {
+                        const cutOut = e.target.value
+                        const cutIn = data.pressureCutIn || ''
+                        onChange({ ...data, pressureCutOut: cutOut,
+                          pressureSwitchRange: cutIn && cutOut ? `${cutIn}/${cutOut} PSI` : '' })
+                      }} />
+                  </div>
+                </div>
               )}
             </div>
           </div>
@@ -263,27 +286,20 @@ export default function Step4Controls({ data, onChange }) {
 
           {/* Float+Pressure: +15 PSI note and shutoff recommendation */}
           {systemType === 'floatPressure' && (
-            <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <div className="info-box" style={{ background: '#F3F4F6', borderColor: '#9CA3AF' }}>
-                <strong>+15 PSI added to TDH</strong> — the combined float + pressure configuration requires
-                an additional 15 PSI of head to maintain system operation.
-              </div>
-
-              <div className="info-box" style={{ background: '#EFF6FF', borderColor: '#3B82F6' }}>
-                <strong>Recommended Shutoff PSI:</strong>
-                {helpMode ? (
-                  elev > 0 ? (
-                    <>
-                      {' '}<strong>{elevPsi} PSI minimum</strong> (based on {elev} ft elevation gain + 10 PSI buffer,
-                      rounded to nearest 10). Note: friction loss will increase this — check TDH breakdown after first calculation.
-                    </>
-                  ) : (
-                    ' Enter elevation gain in Step 1 to get a PSI recommendation.'
-                  )
+            <div className="info-box" style={{ marginTop: '0.75rem', background: '#EFF6FF', borderColor: '#3B82F6' }}>
+              <strong>Recommended Shutoff PSI:</strong>
+              {helpMode ? (
+                elev > 0 ? (
+                  <>
+                    {' '}<strong>{elevPsi} PSI minimum</strong> (based on {elev} ft elevation gain + 10 PSI buffer,
+                    rounded to nearest 10). Note: friction loss will increase this — check TDH breakdown after first calculation.
+                  </>
                 ) : (
-                  ' Shutoff PSI must exceed the PSI required to move water from the pressure switch location to the tank. Select a PSI rating that meets this requirement and enter it in the pressure switch range above.'
-                )}
-              </div>
+                  ' Enter elevation gain in Step 1 to get a PSI recommendation.'
+                )
+              ) : (
+                ' Shutoff PSI must exceed the PSI required to move water from the pressure switch location to the tank. Select a PSI rating that meets this requirement and enter it in the pressure switch range above.'
+              )}
             </div>
           )}
         </div>

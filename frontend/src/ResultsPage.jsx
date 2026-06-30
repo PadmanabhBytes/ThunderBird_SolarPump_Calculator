@@ -247,7 +247,7 @@ export default function ResultsPage({ result, formData, onReset, onEdit }) {
 
           {pump ? (
             <>
-              <div className="pump-name">{pump.model || pump.pump_id}</div>
+              <div className="pump-name">{pump.pump_id}</div>
 
               <dl className="stat-list rec-stats">
                 <StatRow label="Operating TDH"  value={tdhStr ? `${tdhStr} ft` : '—'}   highlight />
